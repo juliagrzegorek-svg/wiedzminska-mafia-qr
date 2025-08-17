@@ -1,99 +1,133 @@
-/* ————— START-SCREEN (rozmyty stół + kafelek) ————— */
-.start-screen{
-  min-height:100vh;
-  position:relative;
-  background-image:url('/assets/bg-start.png');
-  background-size:cover;
-  background-position:center top;
-  display:grid;
-  place-items:center;
+/* ——— START SCREEN (tło: stół, blur od góry) ——— */
+.start-screen {
+  min-height: 100vh;
+  position: relative;
+  background-image: url('/assets/bg-start.png');
+  background-size: cover;
+  background-position: center top;
 }
-.start-screen::before{
-  content:"";
-  position:absolute; inset:0;
-  background-image:url('/assets/bg-start.png');
-  background-size:cover;
-  background-position:center top;
-  filter:blur(8px);
-  transform:scale(1.03);
-  mask-image:linear-gradient(to bottom, black 0%, black 35%, transparent 65%);
-  -webkit-mask-image:linear-gradient(to bottom, black 0%, black 35%, transparent 65%);
-  pointer-events:none;
+.start-screen::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: url('/assets/bg-start.png');
+  background-size: cover;
+  background-position: center top;
+  filter: blur(10px);
+  transform: scale(1.03);
+  /* rozmycie najmocniejsze u góry, znika w dół */
+  mask-image: linear-gradient(to bottom, black 0%, black 35%, transparent 70%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 35%, transparent 70%);
+  pointer-events: none;
 }
-.start-card{
-  position:relative;
-  width:min(640px, 92vw);
-  border-radius:18px;
-  padding:24px;
-  background:rgba(10,10,10,0.55);
-  backdrop-filter: blur(10px);
-  border:1px solid rgba(180,180,180,0.25);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.45);
-  color:#e5e7eb;
-}
-.start-card h2{ font-size:1.4rem; font-weight:700; margin-bottom:14px; }
-.start-card .label{ font-size:.9rem; color:#cbd5e1; }
-.start-card .input{
-  margin-top:6px; width:100%;
-  background:#09090b; color:#e5e7eb;
-  border:1px solid #3f3f46; border-radius:10px;
-  padding:12px 14px; outline:none;
-}
-.start-card .row{ display:flex; gap:16px; margin:8px 0 14px; }
-.start-card .radio{ display:flex; align-items:center; gap:8px; }
-.start-card .cta{
-  margin-top:4px; width:100%;
-  background:#16a34a; color:white; font-weight:600;
-  padding:12px 14px; border-radius:12px; border:none;
-}
-.start-card .cta:hover{ background:#22c55e; }
 
-/* ————— KARTA TURKUS + ZŁOTA RAMKA ————— */
-.witcher-card{
-  --teal1:#09353a;
-  --teal2:#0e7a85;
-  position:relative;
-  aspect-ratio:2/3;
-  width:100%;
-  max-width:520px;
-  border-radius:18px;
+/* szklany kafel */
+.start-glass {
+  position: relative;
+  margin: 0 auto;
+  top: 18vh;
+  width: min(92vw, 720px);
+  background: rgba(15, 17, 19, 0.68);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(120, 120, 120, .35);
+  box-shadow: 0 10px 40px rgba(0,0,0,.35);
+  border-radius: 18px;
+  padding: 24px;
+  color: #e7e7e7;
+}
+.start-glass h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 700;
+}
+.start-glass .form { display: grid; gap: 10px; }
+.start-glass .lbl { font-size: 13px; color: #bfc3c7; }
+.start-glass .inp {
+  height: 44px; border-radius: 10px;
+  border: 1px solid rgba(120,120,120,.35);
+  background: rgba(0,0,0,.55);
+  color: #f2f2f2; padding: 0 12px;
+  outline: none;
+}
+.start-glass .inp:focus { border-color: #2dd4bf; }
+.start-glass .gender { display:flex; gap:18px; margin:6px 0 4px; }
+.start-glass .radio { display:flex; gap:8px; align-items:center; font-size:14px; color:#e6e6e6; }
+.start-glass .enter {
+  margin-top: 6px;
+  height: 46px; border-radius: 10px;
+  background: #10b981; color: #fff;
+  border: none; font-weight: 600; letter-spacing: .2px;
+  box-shadow: 0 6px 18px rgba(16,185,129,.35);
+}
+
+/* ——— KARTA (turkus + złoty ornament) ——— */
+.witcher-card { max-width: 420px; margin: 6px auto; }
+.witcher-card .card-canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2.5/3.6;           /* proporcja jak karta */
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow:
+    0 30px 40px rgba(0,0,0,.35),
+    inset 0 0 0 1px rgba(255,255,255,.03);
+}
+.witcher-card .card-bg{
+  position:absolute; inset:0;
   background:
-    radial-gradient(60% 40% at 50% 0%, rgba(255,255,255,0.06), transparent),
-    linear-gradient(to bottom, var(--teal2), var(--teal1));
-  box-shadow: 0 10px 30px rgba(0,0,0,.45);
-  overflow:hidden;
+    radial-gradient(120% 85% at 50% 10%, rgba(255,255,255,.06) 0%, transparent 60%),
+    linear-gradient(to bottom, #1b8a90 0%, #0c6e70 55%, #0a5a5c 100%);
 }
-.witcher-card::after{
-  /* złoty ornament w oddzielnej warstwie */
-  content:"";
+.witcher-card .card-image{
+  position:absolute; inset:12px 12px 84px; /* miejsce na belkę z imieniem */
+  width: calc(100% - 24px); height: calc(100% - 96px);
+  object-fit: cover; border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+}
+.witcher-card .card-frame{
   position:absolute; inset:0;
-  background-image:url('/assets/card-frame-gold.webp');
-  background-repeat:no-repeat;
-  background-size:contain;
-  background-position:center;
-  pointer-events:none;
+  width:100%; height:100%;
+  object-fit: cover; pointer-events:none; user-select:none;
+  /* delikatny błysk ramy */
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.35));
 }
-.witcher-card .art{
-  position:absolute; inset:14% 8% 34% 8%;
-  overflow:hidden; border-radius:12px;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+.witcher-card .card-caption{
+  position:absolute; left:0; right:0; bottom:0;
+  padding: 10px 14px 14px;
+  background: linear-gradient(to top, rgba(0,0,0,.72), rgba(0,0,0,.0));
 }
-.witcher-card .art img{ width:100%; height:100%; object-fit:cover; display:block; }
+.witcher-card .card-name{
+  color:#fff; font-weight:800; letter-spacing:.2px;
+  font-size: clamp(16px, 2.2vw, 20px);
+  text-shadow: 0 2px 8px rgba(0,0,0,.55);
+}
+.witcher-card .card-role{
+  margin-top:2px; color:#d6f3f4; font-size:13px;
+  text-shadow: 0 2px 6px rgba(0,0,0,.5);
+}
 
-.witcher-card .top{
-  position:absolute; left:10%; right:10%; top:6%;
-  color:#f8fafc; text-align:center; text-shadow:0 2px 6px rgba(0,0,0,.6);
+/* pod kartą: opis */
+.witcher-card .card-info{
+  margin-top: 10px;
+  background: rgba(12,17,19,.7);
+  border: 1px solid rgba(120,120,120,.35);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: #e6f8f8;
 }
-.witcher-card .role{ font-size:.85rem; letter-spacing:.08em; opacity:.9; }
-.witcher-card .name{ font-weight:700; font-size:1.15rem; }
+.witcher-card .info-row{ display:grid; grid-template-columns: 88px 1fr; gap:10px; padding:4px 0; }
+.witcher-card .label{ color:#9bd9db; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
+.witcher-card .value{ font-size:14px; color:#e8ffff; }
 
-.witcher-card .plaque{
-  position:absolute; left:8%; right:8%; bottom:8%;
-  background:linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,.6));
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:12px; padding:10px 12px; color:#e5e7eb;
-}
-.witcher-card .plaque .line{ font-size:.9rem; }
-.witcher-card .plaque .ability{
-  margin-top:6px; font-size:.82rem; line-height:1.2rem; color:#cbd5e1;
+/* ——— PlayerView drobne ——— */
+.player-view{ padding: 18px; color:#e7e7e7; }
+.player-view .gid{ color:#9aa2a9; margin-bottom:6px; font-size:12px; }
+.player-view .gid .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.player-view .title{ font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
+.player-view .cards-grid{ display:grid; grid-template-columns: 1fr; gap:16px; }
+@media (min-width: 860px){ .player-view .cards-grid{ grid-template-columns: 1fr 1fr; } }
+.player-view .back-line{ margin-top: 14px; }
+.player-view .back-btn{
+  display:inline-block; padding:10px 14px; border-radius:10px;
+  border:1px solid rgba(120,120,120,.35); background: rgba(0,0,0,.55); color:#e7e7e7;
 }
