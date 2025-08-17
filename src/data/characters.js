@@ -6,7 +6,9 @@ export const CHARACTERS = [
   { id:'filippa', name:'Filippa Eilhart', sex:'K', role:'Bohaterka', what:'Magini', img:'/characters/filippa.jpg', abilityKey:'filippa-revive' },
   { id:'margarita', name:'Margarita Laux-Antille', sex:'K', role:'Bohaterka', what:'Czarodziejka', img:'/characters/margarita.jpg', abilityKey:'citizen' },
   { id:'nenneke', name:'Nenneke', sex:'K', role:'Bohaterka', what:'Kapłanka', img:'/characters/nenneke.jpg', abilityKey:'nenneke-antivamp' },
-  { id:'milva', name:'Milva', sex:'K', role:'Bohaterka', what:'Łowczyni', img:'/characters/milva.jpg', abilityKey:'citizen' },
+  { id:'triss', name:'Triss Merigold', sex:'K', role:'Bohaterka', what:'Czarodziejka', img:'/characters/triss.jpg', abilityKey:'citizen' },
+  { id:'shani', name:'Shani', sex:'K', role:'Bohaterka', what:'Lekarka', img:'/characters/shani.jpg', abilityKey:'citizen' },
+  { id:'fringilla', name:'Fringilla Vigo', sex:'K', role:'Bohaterka', what:'Czarodziejka', img:'/characters/fringilla.jpg', abilityKey:'citizen' },
 
   // MĘŻCZYŹNI
   { id:'geralt', name:'Geralt', sex:'M', role:'Bohater', what:'Jasnowidz', img:'/characters/geralt.jpg', abilityKey:'geralt-seer' },
@@ -15,8 +17,4 @@ export const CHARACTERS = [
   { id:'emhyr', name:'Emhyr', sex:'M', role:'Bohater', what:'Cesarz', img:'/characters/emhyr.jpg', abilityKey:'emhyr-pardon' },
   { id:'vernon', name:'Vernon Roche', sex:'M', role:'Bohater', what:'Żołnierz', img:'/characters/vernon.jpg', abilityKey:'citizen' },
   { id:'avallach', name:'Avallac’h', sex:'M', role:'Bohater', what:'Mędrzec', img:'/characters/avallach.jpg', abilityKey:'citizen' },
-  { id:'fringilla', name:'Fringilla Vigo', sex:'K', role:'Bohaterka', what:'Czarodziejka', img:'/characters/fringilla.jpg', abilityKey:'citizen' },
-
-  // DODATKOWY OBYWATEL (bez mocy) — żeby było 15
-  { id:'citizen1', name:'Mieszczanin', sex:'M', role:'Bohater', what:'Obywatel', img:'/characters/citizen.jpg', abilityKey:'citizen' },
-].slice(0,15)
+];
