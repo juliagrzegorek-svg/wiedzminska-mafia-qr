@@ -27,7 +27,11 @@ body{
 .start{
   position:relative;
   min-height:100vh;
-  background-image:url('/assets/start-bg.png'); /* tu było .jpg */
+  background-image: image-set(
+  url('/assets/start-bg.png') type('image/png'),
+  url('/assets/start-bg.jpg') type('image/jpeg')
+);
+
   background-size:cover;
   background-position:center top;
   display:flex;
