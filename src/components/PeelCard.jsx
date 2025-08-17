@@ -1,60 +1,77 @@
-// src/components/PeelCard.jsx
 import React, { useRef, useState } from "react";
 
+/**
+ * PeelCard — karta z animacją “odkrycia”.
+ * Front: turkus + złota ramka + portret + dolna tabliczka z liniami tekstu.
+ * Props:
+ *  - title        (np. "Ciri")
+ *  - subtitle     (np. "Bohater" / "Potwór")
+ *  - imageUrl     (portret)
+ *  - description  (treść zdolności — podamy jako 3. linia, jeśli niepusta)
+ *  - showAbility  (bool) jeżeli false — nie dokleja linii “Zdolność”
+ */
 export default function PeelCard({
   title,
   subtitle,
   imageUrl,
   description,
+  showAbility = true,
 }) {
   const [open, setOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const start = useRef({ x: 0, y: 0 });
 
-  const onPointerDown = (e) => {
-    setDragging(true);
-    start.current = { x: e.clientX, y: e.clientY };
-  };
-
+  const onPointerDown = (e) => { setDragging(true); start.current = { x: e.clientX, y: e.clientY }; };
   const onPointerMove = (e) => {
     if (!dragging) return;
     const dx = Math.abs(e.clientX - start.current.x);
     const dy = Math.abs(e.clientY - start.current.y);
-    // lekki ruch rogiem "odkrywa" kartę
     if (dx + dy > 12) setOpen(true);
   };
-
   const onPointerUp = () => setDragging(false);
+
+  // Linijki w dolnej tabliczce: “Imię”, “Co robi”, “Zdolność (opcjonalnie)”
+  const lines = [
+    { label: "Imię", value: title || "" },
+    { label: "Co robi", value: subtitle || "" },
+  ];
+  if (showAbility && description && description.trim()) {
+    lines.push({ label: "Zdolność", value: description.trim() });
+  }
 
   return (
     <div className="group relative">
       <div
-        className="relative h-56 w-full [perspective:1200px]"
+        className="relative h-64 w-full [perspective:1200px] sm:h-72"
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
       >
-        {/* Karta (front/back) */}
         <div
-          className="absolute inset-0 rounded-2xl border border-zinc-700/60 bg-zinc-900 shadow-sm transition-transform duration-500 [transform-style:preserve-3d]"
+          className="absolute inset-0 rounded-2xl transition-transform duration-500 [transform-style:preserve-3d]"
           style={{ transform: `rotateY(${open ? 0 : 180}deg)` }}
         >
           {/* FRONT */}
-          <div className="absolute inset-0 overflow-hidden rounded-2xl [backface-visibility:hidden]">
+          <div className="absolute inset-0 rounded-2xl [backface-visibility:hidden] witcher-card">
             {imageUrl && (
               <img
                 src={imageUrl}
                 alt={title}
-                className="h-full w-full object-cover"
+                className="witcher-portrait"
                 onError={(e) => (e.currentTarget.style.display = "none")}
               />
             )}
-            <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-zinc-400/30 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-3">
-              <div className="text-sm font-semibold text-white">{title}</div>
-              {subtitle && (
-                <div className="text-xs text-zinc-300">{subtitle}</div>
+            <div className="witcher-plaque text-[12px] sm:text-[13px]">
+              <div><span className="label">Imię: </span>{lines[0].value}</div>
+              {lines[1]?.value && (
+                <div className="mt-[2px]">
+                  <span className="label">Co robi: </span>{lines[1].value}
+                </div>
+              )}
+              {lines[2]?.value && (
+                <div className="mt-[2px]">
+                  <span className="label">Zdolność: </span>{lines[2].value}
+                </div>
               )}
             </div>
           </div>
@@ -62,12 +79,8 @@ export default function PeelCard({
           {/* TYŁ */}
           <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(60%_40%_at_50%_0%,rgba(255,255,255,0.06),transparent),linear-gradient(to_bottom,#0b0b0b,#000)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
             <div className="absolute inset-0 grid place-items-center">
-              <div className="rounded-xl border border-zinc-700/60 px-3 py-1 text-xs tracking-wider text-zinc-300">
-                Odkryj kartę
-              </div>
+              <div className="rear-cta">Odkryj kartę</div>
             </div>
-
-            {/* „Pociągnij róg” */}
             <button
               className="absolute bottom-2 right-2 h-10 w-10 rounded-lg border border-zinc-700/60 bg-zinc-900/70 text-zinc-200 shadow hover:bg-zinc-800 active:scale-95"
               onPointerDown={onPointerDown}
@@ -82,10 +95,7 @@ export default function PeelCard({
         </div>
       </div>
 
-      {description && (
-        <div className="mt-2 text-xs text-zinc-400">{description}</div>
-      )}
-
+      {/* Przyciski pod kartą (np. “odłóż”) – zostawiamy minimalne */}
       {open && (
         <div className="mt-2">
           <button
