@@ -1,61 +1,60 @@
 import React, { useState } from "react";
 
-export default function PlayerStart({ onSubmit }) {
+export default function PlayerStart() {
   const [name, setName] = useState("");
-  const [gender, setGender] = useState("F"); // F/M
+  const [gender, setGender] = useState("K");
 
-  const handle = (e) => {
+  const submit = (e) => {
     e.preventDefault();
-    const trimmed = name.trim();
-    if (!trimmed) return;
-
-    // jeśli nie podasz onSubmit, zachowamy tylko dane lokalnie, a host i tak rozda link
-    try {
-      sessionStorage.setItem("playerName", trimmed);
-      sessionStorage.setItem("playerGender", gender);
-    } catch {}
-
-    if (onSubmit) onSubmit({ name: trimmed, gender });
-    // nic nie zmieniamy w routingu – to ekran powitalny po wspólnym QR
+    if (!name.trim()) return;
+    // zapamiętaj lokalnie – gospodarz i tak przydziela role
+    localStorage.setItem("player:name", name.trim());
+    localStorage.setItem("player:gender", gender);
+    // Tu zostajesz – czekasz na link od hosta albo od razu
+    // wróć do głównej (według Twojego flow).
+    window.location.href = "/";
   };
 
   return (
     <div className="start-screen">
-      <form className="start-card" onSubmit={handle}>
+      <div className="start-glass">
         <h2>Podaj dane gracza</h2>
+        <form onSubmit={submit} className="form">
+          <label className="lbl">Imię i nazwisko</label>
+          <input
+            className="inp"
+            placeholder="np. Julia Młodożeniak"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
 
-        <label className="label">Imię i nazwisko</label>
-        <input
-          className="input"
-          placeholder="np. Julia Młodożeniak"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+          <label className="lbl">Płeć</label>
+          <div className="gender">
+            <label className="radio">
+              <input
+                type="radio"
+                name="g"
+                value="K"
+                checked={gender === "K"}
+                onChange={() => setGender("K")}
+              />
+              <span>Kobieta</span>
+            </label>
+            <label className="radio">
+              <input
+                type="radio"
+                name="g"
+                value="M"
+                checked={gender === "M"}
+                onChange={() => setGender("M")}
+              />
+              <span>Mężczyzna</span>
+            </label>
+          </div>
 
-        <div className="label mt-3">Płeć</div>
-        <div className="row">
-          <label className="radio">
-            <input
-              type="radio"
-              name="gender"
-              checked={gender === "F"}
-              onChange={() => setGender("F")}
-            />
-            <span>Kobieta</span>
-          </label>
-          <label className="radio">
-            <input
-              type="radio"
-              name="gender"
-              checked={gender === "M"}
-              onChange={() => setGender("M")}
-            />
-            <span>Mężczyzna</span>
-          </label>
-        </div>
-
-        <button className="cta" type="submit">Wejdź</button>
-      </form>
+          <button className="enter">Wejdź</button>
+        </form>
+      </div>
     </div>
   );
 }
