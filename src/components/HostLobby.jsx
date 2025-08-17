@@ -1,17 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { HEROES, MONSTERS, abilityById } from "../data/gameData.js";
+import { ABILITIES, HEROES, MONSTERS, abilityById } from "../data/gameData.js";
 
 const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const b64urlEncode = (obj) => {
-  const s = JSON.stringify(obj);
-  const b = btoa(unescape(encodeURIComponent(s)));
-  return b.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-};
+const b64urlEncode = (obj) => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 
 export default function HostLobby() {
-  const [players, setPlayers] = useState([]);
+  const [players, setPlayers] = useState([]); // {id,name,gender}
   const [name, setName] = useState("");
+  const [gender, setGender] = useState("K");
   const [monstersCount, setMonstersCount] = useState(5);
   const [dealt, setDealt] = useState(null);
   const gameId = useMemo(() => Math.random().toString(36).slice(2, 8), []);
@@ -19,34 +16,46 @@ export default function HostLobby() {
   const addPlayer = () => {
     const n = name.trim();
     if (!n) return;
-    if (players.some(p => p.name.toLowerCase() === n.toLowerCase())) return;
-    setPlayers([...players, { id: crypto.randomUUID(), name: n }]);
+    setPlayers((p) => [...p, { id: crypto.randomUUID(), name: n, gender }]);
     setName("");
   };
-  const removePlayer = (id) => setPlayers(players.filter(p => p.id !== id));
+  const removePlayer = (id) => setPlayers((p) => p.filter((x) => x.id !== id));
 
   const deal = () => {
-    if (players.length === 0) return;
-    const heroDeck = shuffle(HEROES);
-    const assigned = players.map((p, i) => ({
+    if (!players.length) return;
+
+    const males = HEROES.filter((h) => h.gender === "M");
+    const females = HEROES.filter((h) => h.gender === "K");
+    const used = new Set();
+
+    const pick = (pool) => {
+      for (const h of shuffle(pool)) {
+        if (!used.has(h.id)) { used.add(h.id); return h; }
+      }
+      // jeśli zabraknie – wolna pula wszystkich
+      for (const h of shuffle(HEROES)) {
+        if (!used.has(h.id)) { used.add(h.id); return h; }
+      }
+      return HEROES[0];
+    };
+
+    const assigned = players.map((p) => ({
       name: p.name,
-      hero: heroDeck[i % heroDeck.length],
+      gender: p.gender,
+      hero: p.gender === "K" ? pick(females) : pick(males),
     }));
 
+    // POTWORY (losowe osoby + typy; dopuszczamy powtórki typów)
     const mCount = Math.min(monstersCount, assigned.length);
-    const idx = shuffle(assigned.map((_, i) => i)).slice(0, mCount);
+    const indices = shuffle(assigned.map((_, i) => i)).slice(0, mCount);
+    const monsterTypes = Array.from({ length: mCount }, (_, i) => MONSTERS[i % MONSTERS.length]);
+    const chosen = shuffle(monsterTypes);
+    indices.forEach((i, k) => (assigned[i].monster = chosen[k]));
 
-    const monsterPool = [];
-    for (let i = 0; i < mCount; i++) monsterPool.push(MONSTERS[i % MONSTERS.length]);
-    const chosenTypes = shuffle(monsterPool);
-
-    idx.forEach((i, k) => { assigned[i].monster = chosenTypes[k]; });
-
+    // prywatne linki
     const withLinks = assigned.map((a) => {
-      const payload = { t: "player", gid: gameId, name: a.name, heroId: a.hero.id, monsterId: a.monster?.id || null };
-      const hash = b64urlEncode(payload);
-      const url = `${window.location.origin}/#${hash}`;
-      return { ...a, link: url };
+      const payload = { t: "player", gid: gameId, name: a.name, gender: a.gender, heroId: a.hero.id, monsterId: a.monster?.id || null };
+      return { ...a, link: `${window.location.origin}/#${b64urlEncode(payload)}` };
     });
 
     setDealt(withLinks);
@@ -57,15 +66,31 @@ export default function HostLobby() {
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="basis-2/3">
           <div className="text-lg font-semibold text-white">Gospodarz: lista graczy</div>
-          <div className="mt-2 flex gap-2">
-            <input className="w-64 max-w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-emerald-600" value={name} onChange={(e) => setName(e.target.value)} placeholder="Imię gracza" onKeyDown={(e) => e.key === 'Enter' && addPlayer()} />
-            <button className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800" onClick={addPlayer}>Dodaj</button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <input
+              className="w-64 max-w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-emerald-600"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Imię gracza"
+              onKeyDown={(e) => e.key === "Enter" && addPlayer()}
+            />
+            <select
+              className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+            >
+              <option value="K">Kobieta</option>
+              <option value="M">Mężczyzna</option>
+            </select>
+            <button className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800" onClick={addPlayer}>
+              Dodaj
+            </button>
           </div>
 
           <ul className="mt-3 grid grid-cols-2 gap-2">
-            {players.map(p => (
+            {players.map((p) => (
               <li key={p.id} className="flex items-center justify-between rounded-lg border border-zinc-700/60 bg-zinc-950 px-3 py-1.5 text-sm">
-                <span>{p.name}</span>
+                <span>{p.name} <span className="text-zinc-400">({p.gender})</span></span>
                 <button className="text-zinc-400 hover:text-red-400" onClick={() => removePlayer(p.id)}>Usuń</button>
               </li>
             ))}
@@ -81,10 +106,10 @@ export default function HostLobby() {
         <div className="basis-1/3 rounded-xl border border-zinc-700/60 bg-zinc-950 p-3">
           <div className="text-sm font-semibold text-white">Jak to działa?</div>
           <ol className="mt-2 list-inside list-decimal text-sm text-zinc-300">
-            <li>Dodaj imiona graczy.</li>
+            <li>Dodaj imiona i płeć graczy.</li>
             <li>Ustaw liczbę potworów (domyślnie 5).</li>
             <li>Kliknij <em>Rozdaj karty</em>.</li>
-            <li>Każdemu graczowi wyślij jego <em>Link</em> lub pokaż <em>QR</em>. Link jest prywatny — pokazuje tylko jego karty.</li>
+            <li>Wyślij każdemu jego <em>Link</em> lub pokaż <em>QR</em> (prywatne).</li>
           </ol>
         </div>
       </div>
@@ -107,11 +132,11 @@ export default function HostLobby() {
                       <td className="pr-3 text-zinc-300">{ability?.title || "—"}</td>
                       <td className="pr-3">{row.monster ? row.monster.name : "—"}</td>
                       <td className="pr-3">
-                        <button className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-200 hover:bg-zinc-800" onClick={() => navigator.clipboard.writeText(row.link)}>Kopiuj link</button>
+                        <button className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-200 hover:bg-zinc-800" onClick={() => navigator.clipboard.writeText(row.link)}>
+                          Kopiuj link
+                        </button>
                       </td>
-                      <td className="py-2">
-                        <div className="rounded bg-white p-1 inline-block"><QRCodeSVG value={row.link} size={72} /></div>
-                      </td>
+                      <td className="py-2"><div className="inline-block rounded bg-white p-1"><QRCodeSVG value={row.link} size={72} /></div></td>
                     </tr>
                   );
                 })}
