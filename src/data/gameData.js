@@ -2,24 +2,27 @@
 export const IMG = {
   // BOHATEROWIE (PNG w public/assets/heroes/)
   yennefer: "/assets/heroes/yennefer.png",
-  geralt: "/assets/heroes/geralt.png",
-  ciri: "/assets/heroes/ciri.png",
-  filippa: "/assets/heroes/filippa.png",
-  jaskier: "/assets/heroes/jaskier.png",
-  zoltan: "/assets/heroes/zoltan.png",
-  nenneke: "/assets/heroes/nenneke.png",
-  emhyr: "/assets/heroes/emhyr.png",
-  vernon: "/assets/heroes/vernon.png",
-  keira: "/assets/heroes/keira.png",
+  geralt:   "/assets/heroes/geralt.png",
+  ciri:     "/assets/heroes/ciri.png",
+  filippa:  "/assets/heroes/filippa.png",
+  jaskier:  "/assets/heroes/jaskier.png",
+  zoltan:   "/assets/heroes/zoltan.png",
+  nenneke:  "/assets/heroes/nenneke.png",
+  emhyr:    "/assets/heroes/emhyr.png",
+
+  // obywatele (bez mocy)
+  vernon:    "/assets/heroes/vernon.png",
+  keira:     "/assets/heroes/keira.png",
   margarita: "/assets/heroes/margarita.png",
-  shani: "/assets/heroes/shani.png",
-  triss: "/assets/heroes/triss.png",
-  // POTWORY
-  wampir: "/assets/monsters/wampir.png",
-  strzyga: "/assets/monsters/strzyga.png",
-  wilkolak: "/assets/monsters/wilkolak.png",
-  bruxa: "/assets/monsters/bruxa.png",
-  upior: "/assets/monsters/upior.png",
+  shani:     "/assets/heroes/shani.png",
+  triss:     "/assets/heroes/triss.png",
+
+  // POTWORY 
+  vampire:  "/assets/monsters/wampir.png",
+  strzyga:  "/assets/monsters/strzyga.png",
+  werewolf: "/assets/monsters/wilkolak.png",
+  bruxa:    "/assets/monsters/bruxa.png",
+  upior:    "/assets/monsters/upior.png",
 };
 
 export const ABILITIES = [
