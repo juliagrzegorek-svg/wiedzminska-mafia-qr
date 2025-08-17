@@ -10,29 +10,23 @@ const LS = {
   hero: 'player:hero', monster: 'player:monster', ability: 'player:ability',
   step: 'player:step'
 }
+
 const params = new URLSearchParams(location.search)
 const presetHeroId = params.get('pre') || null
 const hostMode = params.get('host') === '1' || location.hash === '#host'
 
 function randItem(arr){ return arr[Math.floor(Math.random()*arr.length)] }
 
-/** Obraz z fallbackiem rozszerzeń: .png → .jpg → .webp */
-function SmartImg({ kind, id, alt }){
+/** Obraz z fallbackiem. Jeśli podasz `src`, użyje go. */
+function SmartImg({ src, kind, id, alt }){
   const [i,setI] = useState(0)
-  const sources = useMemo(()=>[
-    `/${kind}/${id}.png`,
-    `/${kind}/${id}.jpg`,
-    `/${kind}/${id}.webp`
-  ], [kind,id])
-  const src = sources[Math.min(i, sources.length-1)]
-  return (
-    <img
-      src={src}
-      alt={alt}
-      onError={()=> setI(v => v + 1)}
-      style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}
-    />
-  )
+  const sources = useMemo(()=>{
+    if(src) return [src]
+    const base = `/${kind}/${id}`
+    return [`${base}.png`, `${base}.jpg`, `${base}.webp`]
+  }, [src, kind, id])
+  const real = sources[Math.min(i, sources.length-1)]
+  return <img src={real} alt={alt} onError={()=> setI(v=>v+1)} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
 }
 
 export default function App(){
@@ -43,6 +37,7 @@ export default function App(){
   const [monster,setMonster] = useState(()=> JSON.parse(localStorage.getItem(LS.monster) || 'null'))
   const [ability,setAbility] = useState(()=> JSON.parse(localStorage.getItem(LS.ability) || 'null'))
   const [step,setStep] = useState(localStorage.getItem(LS.step) || 'start')
+  const [abilityOpen,setAbilityOpen] = useState(false) // możliwość wysunięcia karty zdolności
 
   const [focus,setFocus] = useState('center')
   const [showOverlay,setShowOverlay] = useState(false)
@@ -71,16 +66,22 @@ export default function App(){
     return () => un && un()
   },[hostMode])
 
+  // QR dla hosta (bez Supabase też działa)
   useEffect(()=>{
     if(!hostMode) return
     const code = getGameCode()
-    (async ()=>{
-      const entries = await Promise.all(CHARACTERS.map(async c=>{
-        const link = `${location.origin}${location.pathname}?g=${code}&pre=${c.id}`
-        const data = await QRCode.toDataURL(link, { width: 220, margin: 1 })
-        return [c.id, data]
-      }))
-      setQrMap(Object.fromEntries(entries))
+    ;(async ()=>{
+      try{
+        const entries = await Promise.all(CHARACTERS.map(async c=>{
+          const link = `${location.origin}${location.pathname}?g=${code}&pre=${c.id}`
+          const data = await QRCode.toDataURL(link, { width: 220, margin: 1 })
+          return [c.id, data]
+        }))
+        setQrMap(Object.fromEntries(entries))
+      }catch(e){
+        console.error('QR error', e)
+        setQrMap({})
+      }
     })()
   },[hostMode])
 
@@ -100,15 +101,15 @@ export default function App(){
   function startGame(e){
     e.preventDefault()
     if(!name.trim()) return
+
     let drawn
     if(presetHero) drawn = presetHero
-    else {
-      const pool = CHARACTERS.filter(c => c.sex === gender)
-      drawn = randItem(pool)
-    }
+    else drawn = randItem(CHARACTERS.filter(c => c.sex === gender))
+
     setHero(drawn)
     setStep('hero')
     setFocus('center')
+    setAbilityOpen(false)
 
     const giveMonster = Math.random() < 0.35
     if(giveMonster) setMonster(randItem(MONSTERS)); else setMonster(null)
@@ -123,7 +124,7 @@ export default function App(){
       if(monster){
         setTimeout(()=>{
           setStep('monster')
-          setFocus('center')  // ← potwór na wierzchu
+          setFocus('center')  // potwór na wierzchu
         }, 450)
       } else {
         setTimeout(()=> triggerAlert(), 400)
@@ -155,8 +156,8 @@ export default function App(){
         if(i>=fullText.length){
           clearInterval(typingTimer.current)
         }
-      }, 22)
-    }, 4000)
+      }, 60) // wolniejsze „stukanie”
+    }, 4000) // „Ludzie uważajcie!” ~4s
   }
 
   function onOverlayClick(){
@@ -170,20 +171,28 @@ export default function App(){
       setAbility({ ...ma, ownerName: monster.name })
     }
     setShowOverlay(false)
-    setStep('ability')
+    setStep('ability')       // pokaż Zdolność w CENTRUM
     setFocus('right')
+    setAbilityOpen(true)     // od razu otwarta
     setTimeout(publish, 0)
   }
 
   function onAbilityClick(){
     if(step==='ability'){
+      // pierwszy klik po pokazaniu — odkładamy na prawo
       setStep('done')
+      setAbilityOpen(false)
       setFocus('right')
       setTimeout(publish, 0)
+    } else if(step==='done'){
+      // później można ją „wysuwać” i chować
+      setAbilityOpen(v=>!v)
     }
   }
 
-  function togglePlaced(where){ setFocus(f=> f===where ? 'center' : where ) }
+  function togglePlaced(where){
+    setFocus(f=> f===where ? 'center' : where )
+  }
 
   function resetAll(){
     localStorage.removeItem(LS.hero)
@@ -191,6 +200,7 @@ export default function App(){
     localStorage.removeItem(LS.ability)
     localStorage.removeItem(LS.step)
     setHero(null); setMonster(null); setAbility(null); setStep('start')
+    setAbilityOpen(false)
     setTimeout(publish, 0)
   }
 
@@ -221,7 +231,7 @@ export default function App(){
           <div className="host-qr">
             {CHARACTERS.map(c=>(
               <div className="qr-card" key={c.id} title={c.name}>
-                <img src={qrMap[c.id]} alt={`QR ${c.name}`} />
+                {qrMap[c.id] ? <img src={qrMap[c.id]} alt={`QR ${c.name}`} /> : <span className="small">generuję…</span>}
                 <span className="small">{c.name}</span>
               </div>
             ))}
@@ -250,14 +260,19 @@ export default function App(){
         <div className="table">
           <div className="table-surface" />
 
+          {/* BOHATER */}
           {hero && (step==='hero' || step==='hero-placed' || step==='monster' || step==='monster-placed' || step==='ability' || step==='done') && (
             <div
-              className={['card', focus==='left'?'focus':'', step==='hero'?'':'at-left'].join(' ')}
+              className={[
+                'card',
+                focus==='left'?'focus':'',
+                step==='hero' ? 'centered zoom' : 'at-left'
+              ].join(' ')}
               onClick={step==='hero' ? onHeroClick : ()=>togglePlaced('left')}
               style={{ zIndex: focus==='left'? 40: 10 }}
             >
               <div className="media">
-                <SmartImg kind="characters" id={hero.id} alt={hero.name} />
+                <SmartImg src={hero.img} kind="characters" id={hero.id} alt={hero.name} />
                 <div className="frame" />
               </div>
               <div className="body">
@@ -276,30 +291,37 @@ export default function App(){
             </div>
           )}
 
+          {/* POTWÓR */}
           {monster && (step==='monster' || step==='monster-placed' || step==='ability' || step==='done') && (
             <div
-              className={['card', focus==='center'?'focus':'', step==='monster'?'':'at-center'].join(' ')}
+              className={[
+                'card',
+                focus==='center'?'focus':'',
+                step==='monster' ? 'centered zoom' : 'at-center'
+              ].join(' ')}
               onClick={step==='monster' ? onMonsterClick : ()=>togglePlaced('center')}
               style={{ zIndex: focus==='center'? 40: 9 }}
             >
               <div className="media">
-                <SmartImg kind="monsters" id={monster.id} alt={monster.name} />
+                <SmartImg src={monster.img} kind="monsters" id={monster.id} alt={monster.name} />
                 <div className="frame" />
               </div>
               <div className="body">
                 <h3>{monster.name}</h3>
                 <div className="role">Potwór</div>
-                <div className="meta">
-                  <div><b>Co robi?</b> {monster.what}</div>
-                </div>
+                <div className="meta"><div><b>Co robi?</b> {monster.what}</div></div>
                 <div className="action"><button type="button">{step==='monster' ? 'Odłóż kartę na stół' : 'Powiększ/Schowaj'}</button></div>
               </div>
             </div>
           )}
 
+          {/* ZDOLNOŚĆ */}
           {ability && (step==='ability' || step==='done') && (
             <div
-              className={['card','ability', focus==='right'?'focus':'','at-right'].join(' ')}
+              className={[
+                'card','ability', focus==='right'?'focus':'',
+                (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right'
+              ].join(' ')}
               onClick={onAbilityClick}
               style={{ zIndex: focus==='right'? 40: 8 }}
             >
@@ -310,14 +332,13 @@ export default function App(){
               <div className="body">
                 <h3>{`Zdolność: ${ability.ownerName} — ${ability.title.replace(/^.*—\s*/,'')}`}</h3>
                 <div className="role">Karta zdolności</div>
-                <div className="meta">
-                  <p>{ability.description}</p>
-                </div>
-                <div className="action"><button type="button">{step==='ability' ? 'Odłóż kartę na stół' : 'Powiększ/Schowaj'}</button></div>
+                <div className="meta"><p>{ability.description}</p></div>
+                <div className="action"><button type="button">{step==='ability' ? 'Odłóż kartę na stół' : (abilityOpen ? 'Schowaj' : 'Pokaż')}</button></div>
               </div>
             </div>
           )}
 
+          {/* OVERLAY */}
           {showOverlay && (
             <div className="overlay" onClick={onOverlayClick}>
               <div className="smoke"></div>
