@@ -11,21 +11,22 @@ const LS = {
   step: 'player:step'
 }
 
-/* ——— helpers ——— */
+/* utils */
 function randItem(arr){ return arr[Math.floor(Math.random()*arr.length)] }
-const slugify = s => s
-  ?.normalize('NFD')
-  .replace(/[\u0300-\u036f]/g,'')
-  .toLowerCase()
-  .replace(/[^a-z0-9]+/g,'-')
-  .replace(/(^-|-$)/g,'')
+const slugify = s => s?.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')
+const detectHost = () => {
+  const u = new URL(window.location.href)
+  return u.searchParams.get('host') === '1' || u.hash.replace('#','').includes('host')
+}
+const params = new URLSearchParams(location.search)
+const presetHeroId = params.get('pre') || null
 
-/* Obraz z twardymi fallbackami: src → id → slug(name) → pierwsze słowo */
+/* obraz z twardymi fallbackami (bez ramki) */
 function SmartImg({ src, kind, id, name }){
   const [i,setI] = useState(0)
   const bases = useMemo(()=>{
     const list = []
-    if(src) list.push(src) // najpierw to, co podałaś w danych
+    if(src) list.push(src)
     const slug = slugify(name)
     const first = slug?.split('-')[0]
     list.push(`/${kind}/${id}`)
@@ -33,39 +34,17 @@ function SmartImg({ src, kind, id, name }){
     if(first && first!==slug) list.push(`/${kind}/${first}`)
     return list
   }, [src, kind, id, name])
-
   const exts = ['.png','.jpg','.jpeg','.webp']
   const sources = useMemo(()=>{
-    const out = []
-    for(const b of bases){
-      if(/\.(png|jpe?g|webp)$/i.test(b)) out.push(b)
-      else exts.forEach(e=> out.push(b+e))
-    }
-    return out
+    const out=[]; for(const b of bases){ if(/\.(png|jpe?g|webp)$/i.test(b)) out.push(b); else exts.forEach(e=>out.push(b+e)) } return out
   }, [bases])
-
   const real = sources[Math.min(i, sources.length-1)]
-  return (
-    <img
-      src={real}
-      alt={name}
-      onError={()=> setI(v => v+1)}
-      style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}
-    />
-  )
+  return <img src={real} alt={name} onError={()=>setI(v=>v+1)} style={{width:'100%',height:'100%',objectFit:'contain',objectPosition:'center'}}/>
 }
-
-/* host wykrywany z ?host=1, #host, #/host i reaguje na zmianę hash */
-const detectHost = () => {
-  const u = new URL(window.location.href)
-  return u.searchParams.get('host') === '1' || u.hash.replace('#','').includes('host')
-}
-
-const params = new URLSearchParams(location.search)
-const presetHeroId = params.get('pre') || null
 
 export default function App(){
   const [hostMode,setHostMode] = useState(detectHost())
+  useEffect(()=>{ const onHash=()=>setHostMode(detectHost()); window.addEventListener('hashchange',onHash); return ()=>window.removeEventListener('hashchange',onHash) },[])
 
   const [name,setName] = useState(localStorage.getItem(LS.name) || '')
   const [gender,setGender] = useState(localStorage.getItem(LS.gender) || 'K')
@@ -83,21 +62,15 @@ export default function App(){
 
   const [players,setPlayers] = useState([])
   const [qrMap,setQrMap] = useState({})
+  const [qrBig,setQrBig]   = useState(null) // {name, data, link}
 
   const fullText = 'W dzisiejszym jedzeniu został wykryty eliksir, który sprawił, że zdolności bohaterów pomieszały się. Czy Yen to Yen? Czy Emhyr wciąż może okazać łaskę?'
   const typingTimer = useRef(null)
 
-  // hashchange dla /#host
-  useEffect(()=>{
-    const onHash = ()=> setHostMode(detectHost())
-    window.addEventListener('hashchange', onHash)
-    return ()=> window.removeEventListener('hashchange', onHash)
-  },[])
-
   const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, [])
   useEffect(()=>{ if(presetHero) setGender(presetHero.sex) },[presetHero])
 
-  // persist
+  /* persist */
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name])
   useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender])
   useEffect(()=>{ localStorage.setItem(LS.step, step) },[step])
@@ -105,28 +78,28 @@ export default function App(){
   useEffect(()=>{ monster && localStorage.setItem(LS.monster, JSON.stringify(monster)) },[monster])
   useEffect(()=>{ ability && localStorage.setItem(LS.ability, JSON.stringify(ability)) },[ability])
 
-  // HOST realtime (jeśli włączony)
+  /* realtime host (opcjonalnie) */
   useEffect(()=>{
     if(!hostMode || !rtEnabled) return
     const un = subscribePlayers(setPlayers)
     return () => un && un()
   },[hostMode])
 
-  // HOST QR (działa bez Supabase)
+  /* QR dla hosta */
+  function buildLinkFor(c){
+    const code = getGameCode()
+    return `${location.origin}${location.pathname}?g=${code}&pre=${c.id}`
+  }
   useEffect(()=>{
     if(!hostMode) return
-    const code = getGameCode()
-    ;(async ()=>{
+    (async ()=>{
       try{
         const entries = await Promise.all(CHARACTERS.map(async c=>{
-          const link = `${location.origin}${location.pathname}?g=${code}&pre=${c.id}`
-          const data = await QRCode.toDataURL(link, { width: 220, margin: 1 })
+          const data = await QRCode.toDataURL(buildLinkFor(c), { width: 220, margin: 1 })
           return [c.id, data]
         }))
         setQrMap(Object.fromEntries(entries))
-      }catch(e){
-        console.error('QR error', e); setQrMap({})
-      }
+      }catch(e){ console.error('QR error', e); setQrMap({}) }
     })()
   },[hostMode])
 
@@ -146,57 +119,40 @@ export default function App(){
   function startGame(e){
     e.preventDefault()
     if(!name.trim()) return
-
     const drawn = presetHero || randItem(CHARACTERS.filter(c => c.sex === gender))
-    setHero(drawn)
-    setStep('hero')
-    setFocus('center')
-    setAbilityOpen(false)
-
+    setHero(drawn); setStep('hero'); setFocus('center'); setAbilityOpen(false)
     const giveMonster = Math.random() < 0.35
     if(giveMonster) setMonster(randItem(MONSTERS)); else setMonster(null)
-
     setTimeout(publish, 0)
   }
 
   function onHeroClick(){
     if(step==='hero'){
-      setStep('hero-placed')
-      setFocus('left')
-      if(monster){
-        setTimeout(()=>{ setStep('monster'); setFocus('center') }, 450) // potwór na wierzchu
-      } else {
-        setTimeout(()=> triggerAlert(), 400)
-      }
+      setStep('hero-placed'); setFocus('left')
+      if(monster) setTimeout(()=>{ setStep('monster'); setFocus('center') }, 450)
+      else setTimeout(()=> triggerAlert(), 400)
       setTimeout(publish, 0)
     }
   }
-
   function onMonsterClick(){
     if(step==='monster'){
-      setStep('monster-placed')
-      setFocus('center')
+      setStep('monster-placed'); setFocus('center')
       setTimeout(()=> triggerAlert(), 400)
       setTimeout(publish, 0)
     }
   }
 
   function triggerAlert(){
-    setShowOverlay(true)
-    setShowAlert(true)
+    setShowOverlay(true); setShowAlert(true)
     setTimeout(()=>{
-      setShowAlert(false)
-      setTyping('')
-      let i=0
+      setShowAlert(false); setTyping(''); let i=0
       clearInterval(typingTimer.current)
       typingTimer.current = setInterval(()=>{
-        i++
-        setTyping(fullText.slice(0,i))
+        i++; setTyping(fullText.slice(0,i))
         if(i>=fullText.length) clearInterval(typingTimer.current)
-      }, 70) // wolniej „stuka”
-    }, 4000)
+      }, 70) // wolniej
+    }, 4000) // napis 4s
   }
-
   function onOverlayClick(){
     if(typing.length < fullText.length) return
     if(hero && !ability){
@@ -207,47 +163,53 @@ export default function App(){
       const ma = randItem(MONSTER_ABILITIES)
       setAbility({ ...ma, ownerName: monster.name })
     }
-    setShowOverlay(false)
-    setStep('ability')    // POKAŻ NA ŚRODKU JAKO MODAL
-    setFocus('right')
-    setAbilityOpen(true)
+    setShowOverlay(false); setStep('ability'); setFocus('right'); setAbilityOpen(true)
     setTimeout(publish, 0)
   }
 
   function onAbilityClick(){
     if(step==='ability'){
-      setStep('done')       // pierwszy klik — odkładamy w prawo
-      setAbilityOpen(false)
-      setFocus('right')
+      setStep('done'); setAbilityOpen(false); setFocus('right')
       setTimeout(publish, 0)
     } else if(step==='done'){
-      setAbilityOpen(v=>!v) // kolejne kliki — wysuwaj/chowaj
+      setAbilityOpen(v=>!v)
     }
   }
 
   function togglePlaced(where){ setFocus(f=> f===where ? 'center' : where ) }
-
   function resetAll(){
-    localStorage.removeItem(LS.hero)
-    localStorage.removeItem(LS.monster)
-    localStorage.removeItem(LS.ability)
-    localStorage.removeItem(LS.step)
-    setHero(null); setMonster(null); setAbility(null); setStep('start')
-    setAbilityOpen(false)
+    localStorage.removeItem(LS.hero); localStorage.removeItem(LS.monster)
+    localStorage.removeItem(LS.ability); localStorage.removeItem(LS.step)
+    setHero(null); setMonster(null); setAbility(null); setStep('start'); setAbilityOpen(false)
     setTimeout(publish, 0)
   }
 
   const previewAbility = hero ? GOOD_ABILITIES.find(a=>a.id===hero.abilityKey) : null
   const showPreview = previewAbility && previewAbility.id !== 'citizen'
 
+  /* HOST actions */
+  function newCode(){
+    localStorage.removeItem('game:code')
+    location.reload()
+  }
+  function openQR(c){
+    setQrBig({ name:c.name, data: qrMap[c.id], link: buildLinkFor(c) })
+  }
+  async function copy(text){ try{ await navigator.clipboard.writeText(text) }catch{} }
+
   return (
     <div className="app">
 
-      {/* HOST */}
+      {/* HOST PANEL */}
       {hostMode && (
         <div className="host">
           <div className="host-header">
             Panel Mistrza Gry — kod gry: {getGameCode()} {rtEnabled ? '' : '(realtime wyłączony)'}
+          </div>
+
+          <div className="host-actions">
+            <button className="btn" onClick={()=>copy(`${location.origin}${location.pathname}?g=${getGameCode()}`)}>Kopiuj link do gry</button>
+            <button className="btn" onClick={newCode}>Nowy kod gry</button>
           </div>
 
           <ul>
@@ -260,14 +222,28 @@ export default function App(){
             ))}
           </ul>
 
-          <div style={{marginTop:8, fontWeight:700}}>QR bohaterów:</div>
+          <div style={{marginTop:8, fontWeight:700}}>QR bohaterów (kliknij aby powiększyć):</div>
           <div className="host-qr">
             {CHARACTERS.map(c=>(
-              <div className="qr-card" key={c.id} title={c.name}>
+              <div className="qr-card" key={c.id} onClick={()=>openQR(c)} title={c.name}>
                 {qrMap[c.id] ? <img src={qrMap[c.id]} alt={`QR ${c.name}`} /> : <span className="small">generuję…</span>}
                 <span className="small">{c.name}</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* powiększony QR */}
+      {qrBig && (
+        <div className="qr-modal" onClick={()=>setQrBig(null)}>
+          <div className="qr-box" onClick={e=>e.stopPropagation()}>
+            <div style={{fontWeight:700, marginBottom:8}}>{qrBig.name}</div>
+            <img src={qrBig.data} alt={`QR ${qrBig.name}`} />
+            <div style={{marginTop:10, display:'flex', gap:8, justifyContent:'center'}}>
+              <button className="btn" onClick={()=>copy(qrBig.link)}>Kopiuj link</button>
+              <button className="btn" onClick={()=>setQrBig(null)}>Zamknij</button>
+            </div>
           </div>
         </div>
       )}
@@ -306,7 +282,6 @@ export default function App(){
             >
               <div className="media">
                 <SmartImg src={hero.img} kind="characters" id={hero.id} name={hero.name} />
-                <div className="frame" />
               </div>
               <div className="body">
                 <h3>{hero.name}</h3>
@@ -337,7 +312,6 @@ export default function App(){
             >
               <div className="media">
                 <SmartImg src={monster.img} kind="monsters" id={monster.id} name={monster.name} />
-                <div className="frame" />
               </div>
               <div className="body">
                 <h3>{monster.name}</h3>
@@ -359,8 +333,7 @@ export default function App(){
               style={{ zIndex: 2000 }}
             >
               <div className="media">
-                <img src="/assets/ability.jpg" alt="Zdolność" />
-                <div className="frame" />
+                <img src="/assets/ability.jpg" alt="Zdolność" style={{width:'100%',height:'100%',objectFit:'contain'}}/>
               </div>
               <div className="body">
                 <h3>{`Zdolność: ${ability.ownerName} — ${ability.title.replace(/^.*—\s*/,'')}`}</h3>
@@ -375,17 +348,11 @@ export default function App(){
           {showOverlay && (
             <div className="overlay" onClick={onOverlayClick}>
               <div className="smoke"></div>
-              {showAlert ? (
-                <div className="alert">Ludzie uważajcie!</div>
-              ) : (
-                <div className="typewriter">
-                  {typing}<span className="cursor"></span>
-                </div>
-              )}
+              {showAlert ? <div className="alert">Ludzie uważajcie!</div> : <div className="typewriter">{typing}<span className="cursor"></span></div>}
             </div>
           )}
 
-          <div style={{ position:'absolute', top:12, right:12, opacity: .7, fontSize:12 }}>
+          <div style={{ position:'absolute', top:12, right:12, opacity:.7, fontSize:12 }}>
             <button onClick={resetAll} className="btn" style={{padding:'6px 10px'}}>RESET</button>
           </div>
         </div>
