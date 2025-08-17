@@ -1,32 +1,32 @@
 // src/data/gameData.js
-
-// Ścieżki do obrazów (public/assets/*)
+// ŚCIEŻKI DO OBRAZKÓW (public/assets/…)
 export const IMG = {
-  // BOHATEROWIE – .png
-  yennefer: "/assets/heroes/yennefer.png",
-  geralt: "/assets/heroes/geralt.png",
-  ciri: "/assets/heroes/ciri.png",
-  filippa: "/assets/heroes/filippa.png",
-  jaskier: "/assets/heroes/jaskier.png",
-  zoltan: "/assets/heroes/zoltan.png",
-  nenneke: "/assets/heroes/nenneke.png",
-  emhyr: "/assets/heroes/emhyr.png",
-  vernon: "/assets/heroes/vernon.png",
-  keira: "/assets/heroes/keira.png",
-  margarita: "/assets/heroes/margarita.png",
-  shani: "/assets/heroes/shani.png",
-  triss: "/assets/heroes/triss.png",
-  fringilla: "/assets/heroes/fringilla.png",
-  avallach: "/assets/heroes/avallach.png",
+  // BOHATEROWIE (PNG)
+  yennefer:  "/assets/heroes/yennefer.png",
+  geralt:     "/assets/heroes/geralt.png",
+  ciri:       "/assets/heroes/ciri.png",
+  filippa:    "/assets/heroes/filippa.png",
+  jaskier:    "/assets/heroes/jaskier.png",
+  zoltan:     "/assets/heroes/zoltan.png",
+  nenneke:    "/assets/heroes/nenneke.png",
+  emhyr:      "/assets/heroes/emhyr.png",
+  vernon:     "/assets/heroes/vernon.png",
+  keira:      "/assets/heroes/keira.png",
+  margarita:  "/assets/heroes/margarita.png",
+  shani:      "/assets/heroes/shani.png",
+  triss:      "/assets/heroes/triss.png",
+  fringilla:  "/assets/heroes/fringilla.png",
+  avallach:   "/assets/heroes/avallach.png",
 
-  // POTWORY – .png
-  bruxa: "/assets/monsters/bruxa.png",
-  strzyga: "/assets/monsters/strzyga.png",
-  upior: "/assets/monsters/upior.png",
-  wampir: "/assets/monsters/wampir.png",
-  wilkolak: "/assets/monsters/wilkolak.png",
+  // POTWORY (PNG)
+  bruxa:      "/assets/monsters/bruxa.png",
+  strzyga:    "/assets/monsters/strzyga.png",
+  upior:      "/assets/monsters/upior.png",
+  wampir:     "/assets/monsters/wampir.png",
+  wilkolak:   "/assets/monsters/wilkolak.png",
 };
 
+// OPISY UMIEJĘTNOŚCI
 export const ABILITIES = [
   {
     id: "yen-healer",
@@ -79,39 +79,40 @@ export const ABILITIES = [
   {
     id: "citizen",
     title: "Obywatel",
-    description:
-      "Brak mocy specjalnej. Cel: przetrwać i pomóc wiosce pokonać potwory.",
+    description: "Brak mocy specjalnej. Cel: przetrwać i pomóc wiosce pokonać potwory.",
   },
 ];
 
-// BOHATEROWIE (z płcią)
+// BOHATEROWIE (podaj bazową zdolność albo 'citizen')
 export const HEROES = [
   // z mocami
-  { id: "yennefer", name: "Yennefer", baseAbilityId: "yen-healer", gender: "f", image: IMG.yennefer },
-  { id: "geralt", name: "Geralt", baseAbilityId: "geralt-seer", gender: "m", image: IMG.geralt },
-  { id: "ciri", name: "Ciri", baseAbilityId: "ciri-seer", gender: "f", image: IMG.ciri },
-  { id: "filippa", name: "Filippa Eilhart", baseAbilityId: "filippa-revive", gender: "f", image: IMG.filippa },
-  { id: "jaskier", name: "Jaskier", baseAbilityId: "bard-cancel-vote", gender: "m", image: IMG.jaskier },
-  { id: "zoltan", name: "Zoltan (Krasnolud)", baseAbilityId: "zoltan-shield-village", gender: "m", image: IMG.zoltan },
-  { id: "nenneke", name: "Nenneke", baseAbilityId: "nenneke-antivamp", gender: "f", image: IMG.nenneke },
-  { id: "emhyr", name: "Emhyr", baseAbilityId: "emhyr-pardon", gender: "m", image: IMG.emhyr },
+  { id: "yennefer", name: "Yennefer",           baseAbilityId: "yen-healer",        image: IMG.yennefer },
+  { id: "geralt",    name: "Geralt",             baseAbilityId: "geralt-seer",       image: IMG.geralt },
+  { id: "ciri",      name: "Ciri",               baseAbilityId: "ciri-seer",         image: IMG.ciri },
+  { id: "filippa",   name: "Filippa Eilhart",    baseAbilityId: "filippa-revive",    image: IMG.filippa },
+  { id: "jaskier",   name: "Jaskier",            baseAbilityId: "bard-cancel-vote",  image: IMG.jaskier },
+  { id: "zoltan",    name: "Zoltan",             baseAbilityId: "zoltan-shield-village", image: IMG.zoltan },
+  { id: "nenneke",   name: "Nenneke",            baseAbilityId: "nenneke-antivamp",  image: IMG.nenneke },
+  { id: "emhyr",     name: "Emhyr",              baseAbilityId: "emhyr-pardon",      image: IMG.emhyr },
 
   // obywatele (bez mocy)
-  { id: "vernon", name: "Vernon", baseAbilityId: "citizen", gender: "m", image: IMG.vernon },
-  { id: "keira", name: "Keira", baseAbilityId: "citizen", gender: "f", image: IMG.keira },
-  { id: "margarita", name: "Margarita", baseAbilityId: "citizen", gender: "f", image: IMG.margarita },
-  { id: "shani", name: "Shani", baseAbilityId: "citizen", gender: "f", image: IMG.shani },
-  { id: "triss", name: "Triss", baseAbilityId: "citizen", gender: "f", image: IMG.triss },
-  { id: "fringilla", name: "Fringilla", baseAbilityId: "citizen", gender: "f", image: IMG.fringilla },
-  { id: "avallach", name: "Avallach", baseAbilityId: "citizen", gender: "m", image: IMG.avallach },
+  { id: "vernon",    name: "Vernon",             baseAbilityId: "citizen",           image: IMG.vernon },
+  { id: "keira",     name: "Keira",              baseAbilityId: "citizen",           image: IMG.keira },
+  { id: "margarita", name: "Margarita",          baseAbilityId: "citizen",           image: IMG.margarita },
+  { id: "shani",     name: "Shani",              baseAbilityId: "citizen",           image: IMG.shani },
+  { id: "triss",     name: "Triss",              baseAbilityId: "citizen",           image: IMG.triss },
+  { id: "fringilla", name: "Fringilla",          baseAbilityId: "citizen",           image: IMG.fringilla },
+  { id: "avallach",  name: "Avallach",           baseAbilityId: "citizen",           image: IMG.avallach },
 ];
 
+// POTWORY
 export const MONSTERS = [
-  { id: "wampir", name: "Wampir", image: IMG.wampir, description: "PIERWSZEJ NOCY gryzie ofiarę — ta osoba umrze drugiej nocy (chyba że wyleczona)." },
-  { id: "strzyga", name: "Strzyga", image: IMG.strzyga, description: "Nocą współdecyduje z potworami o ofierze." },
+  { id: "wampir",   name: "Wampir",   image: IMG.wampir,   description: "Założyciel Mrocznego Kręgu. PIERWSZEJ NOCY gryzie ofiarę — umrze drugiej nocy (jeśli nie wyleczona)." },
+  { id: "strzyga",  name: "Strzyga",  image: IMG.strzyga,  description: "Nocą współdecyduje z potworami o ofierze." },
   { id: "wilkolak", name: "Wilkołak", image: IMG.wilkolak, description: "Nocą współdecyduje z potworami o ofierze." },
-  { id: "bruxa", name: "Bruxa", image: IMG.bruxa, description: "Nocą współdecyduje z potworami o ofierze." },
-  { id: "upior", name: "Upiór", image: IMG.upior, description: "Nocą współdecyduje z potworami o ofierze." },
+  { id: "bruxa",    name: "Bruxa",    image: IMG.bruxa,    description: "Nocą współdecyduje z potworami o ofierze." },
+  { id: "upior",    name: "Upiór",    image: IMG.upior,    description: "Nocą współdecyduje z potworami o ofierze." },
 ];
 
-export const abilityById = Object.fromEntries(ABILITIES.map((a) => [a.id, a]));
+// Szybki lookup po id:
+export const abilityById = Object.fromEntries(ABILITIES.map(a => [a.id, a]));
