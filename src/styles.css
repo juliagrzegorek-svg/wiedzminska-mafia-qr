@@ -27,13 +27,14 @@ body{
 .start{
   position:relative;
   min-height:100vh;
-  background-image:url('/assets/start-bg.jpg');
+  background-image:url('/assets/start-bg.png'); /* tu było .jpg */
   background-size:cover;
   background-position:center top;
   display:flex;
   align-items:flex-start;
   justify-content:center;
 }
+
 .start::before{
   /* lepsza czytelność na górze */
   content:"";
