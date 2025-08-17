@@ -1,52 +1,54 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-export default function PlayerStart({ onConfirm }) {
-  const [name, setName] = useState("");
-  const [gender, setGender] = useState("K"); // K / M
+export default function PlayerStart({ initialName = "", onStart }) {
+  const [name, setName] = useState(initialName || "");
+  const [gender, setGender] = useState("auto"); // auto/kobieta/mezczyzna
+  const disabled = !name.trim();
 
-  const submit = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    onConfirm({ name: name.trim(), gender });
-  };
+  useEffect(() => {
+    if (!initialName) return;
+    setName(initialName);
+  }, [initialName]);
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="relative min-h-screen text-zinc-100">
       <img
         src="/assets/bg-start.jpg.jpg"
         alt=""
         className="absolute inset-0 h-full w-full object-cover"
       />
-      <div className="absolute inset-0 bg-black/50" />
-      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-[6px]" />
-
-      <form
-        onSubmit={submit}
-        className="relative z-10 mx-auto mt-10 max-w-lg rounded-2xl border border-zinc-700/60 bg-zinc-900/70 p-5 text-zinc-100"
-      >
-        <h2 className="text-center text-lg font-semibold">Podaj dane gracza</h2>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
+      <div className="absolute inset-0">
+        <div className="mx-auto mt-16 max-w-md rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur">
+          <h2 className="mb-3 text-center text-lg font-semibold">Witaj w grze</h2>
+          <label className="mb-2 block text-xs text-zinc-300">Imię i nazwisko</label>
           <input
-            className="sm:col-span-2 rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
-            placeholder="Imię i nazwisko"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            className="mb-4 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600"
+            placeholder="np. Ciri z Cintry"
           />
+
+          <label className="mb-2 block text-xs text-zinc-300">Płeć (do doboru postaci)</label>
           <select
-            className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
             value={gender}
             onChange={(e) => setGender(e.target.value)}
+            className="mb-5 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
           >
-            <option value="K">Kobieta</option>
-            <option value="M">Mężczyzna</option>
+            <option value="auto">Automatycznie</option>
+            <option value="kobieta">Kobieta</option>
+            <option value="mezczyzna">Mężczyzna</option>
           </select>
-        </div>
-        <div className="mt-4 flex justify-center">
-          <button className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500">
-            Dalej
+
+          <button
+            disabled={disabled}
+            onClick={() => onStart({ name: name.trim(), gender })}
+            className="w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Wejdź do gry
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
