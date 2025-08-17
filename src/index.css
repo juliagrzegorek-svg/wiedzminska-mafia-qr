@@ -1,89 +1,99 @@
-/* ===== Start screen (tło stołu z rozmyciem u góry) ===== */
-.start-screen {
-  min-height: 100vh;
-  position: relative;
-  background-image: url('/assets/bg-start.png');
-  background-size: cover;
-  background-position: center top;
+/* ————— START-SCREEN (rozmyty stół + kafelek) ————— */
+.start-screen{
+  min-height:100vh;
+  position:relative;
+  background-image:url('/assets/bg-start.png');
+  background-size:cover;
+  background-position:center top;
+  display:grid;
+  place-items:center;
 }
-
-/* Rozmycie – ta sama tekstura, ale zamaskowana i tylko u góry */
-.start-screen::before {
-  content: "";
-  position: absolute; inset: 0;
-  background-image: url('/assets/bg-start.png');
-  background-size: cover;
-  background-position: center top;
-  filter: blur(10px);
-  transform: scale(1.03);
-  mask-image: linear-gradient(to bottom, black 0%, black 35%, transparent 65%);
-  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 35%, transparent 65%);
-  pointer-events: none;
+.start-screen::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:url('/assets/bg-start.png');
+  background-size:cover;
+  background-position:center top;
+  filter:blur(8px);
+  transform:scale(1.03);
+  mask-image:linear-gradient(to bottom, black 0%, black 35%, transparent 65%);
+  -webkit-mask-image:linear-gradient(to bottom, black 0%, black 35%, transparent 65%);
+  pointer-events:none;
 }
-
-/* Półprzezroczysta karta/formularz na środku */
-.start-card {
-  position: relative;
-  z-index: 1;
-  max-width: 520px;
-  margin: 0 auto;
-  padding: 1.25rem;
-  border-radius: 1rem;
-  background: rgba(15, 15, 15, 0.75);
-  border: 1px solid rgba(120, 120, 120, 0.35);
-  backdrop-filter: blur(6px);
+.start-card{
+  position:relative;
+  width:min(640px, 92vw);
+  border-radius:18px;
+  padding:24px;
+  background:rgba(10,10,10,0.55);
+  backdrop-filter: blur(10px);
+  border:1px solid rgba(180,180,180,0.25);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+  color:#e5e7eb;
 }
+.start-card h2{ font-size:1.4rem; font-weight:700; margin-bottom:14px; }
+.start-card .label{ font-size:.9rem; color:#cbd5e1; }
+.start-card .input{
+  margin-top:6px; width:100%;
+  background:#09090b; color:#e5e7eb;
+  border:1px solid #3f3f46; border-radius:10px;
+  padding:12px 14px; outline:none;
+}
+.start-card .row{ display:flex; gap:16px; margin:8px 0 14px; }
+.start-card .radio{ display:flex; align-items:center; gap:8px; }
+.start-card .cta{
+  margin-top:4px; width:100%;
+  background:#16a34a; color:white; font-weight:600;
+  padding:12px 14px; border-radius:12px; border:none;
+}
+.start-card .cta:hover{ background:#22c55e; }
 
-/* ===== Wizual karty GWENT-owej z turkusem + złotym ornamentem ===== */
-.gwent-card {
-  position: relative;
-  border-radius: 18px;
-  overflow: hidden;
-  aspect-ratio: 3/2;               /* ładna proporcja na telefonie */
+/* ————— KARTA TURKUS + ZŁOTA RAMKA ————— */
+.witcher-card{
+  --teal1:#09353a;
+  --teal2:#0e7a85;
+  position:relative;
+  aspect-ratio:2/3;
+  width:100%;
+  max-width:520px;
+  border-radius:18px;
   background:
-    radial-gradient(60% 60% at 50% 10%, rgba(255,255,255,.08), transparent),
-    linear-gradient(180deg, #0c3f45 0%, #0a3136 60%, #072b2f 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.04),
-    0 10px 30px rgba(0,0,0,.45);
+    radial-gradient(60% 40% at 50% 0%, rgba(255,255,255,0.06), transparent),
+    linear-gradient(to bottom, var(--teal2), var(--teal1));
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  overflow:hidden;
 }
+.witcher-card::after{
+  /* złoty ornament w oddzielnej warstwie */
+  content:"";
+  position:absolute; inset:0;
+  background-image:url('/assets/card-frame-gold.webp');
+  background-repeat:no-repeat;
+  background-size:contain;
+  background-position:center;
+  pointer-events:none;
+}
+.witcher-card .art{
+  position:absolute; inset:14% 8% 34% 8%;
+  overflow:hidden; border-radius:12px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.witcher-card .art img{ width:100%; height:100%; object-fit:cover; display:block; }
 
-/* Złota ramka na wierzchu (plik z assets) */
-.gwent-card .gold-frame {
-  pointer-events: none;
-  position: absolute; inset: 0;
-  background: url('/assets/card-frame-gold.webp') center/contain no-repeat;
-  mix-blend-mode: normal;
+.witcher-card .top{
+  position:absolute; left:10%; right:10%; top:6%;
+  color:#f8fafc; text-align:center; text-shadow:0 2px 6px rgba(0,0,0,.6);
 }
+.witcher-card .role{ font-size:.85rem; letter-spacing:.08em; opacity:.9; }
+.witcher-card .name{ font-weight:700; font-size:1.15rem; }
 
-/* Portret w środku (lekki margines, by nie nachodził na ornament) */
-.gwent-card .portrait {
-  position: absolute;
-  inset: 12% 9% 34% 9%;         /* top right bottom left */
-  border-radius: 8px;
-  overflow: hidden;
+.witcher-card .plaque{
+  position:absolute; left:8%; right:8%; bottom:8%;
+  background:linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,.6));
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px; padding:10px 12px; color:#e5e7eb;
 }
-.gwent-card .portrait img {
-  width: 100%; height: 100%; object-fit: cover;
-}
-
-/* Tabliczka z napisem u dołu */
-.gwent-card .plaque {
-  position: absolute; left: 8%; right: 8%; bottom: 8%;
-  background: rgba(5, 14, 16, 0.55);
-  border: 1px solid rgba(196, 167, 48, 0.45);
-  border-radius: 10px;
-  padding: .5rem .75rem;
-  color: #e7e2c0;
-  text-shadow: 0 1px 0 rgba(0,0,0,.5);
-  font-variant: small-caps;
-}
-
-/* Front/tył – kiedy karta jest jeszcze zakryta */
-.card-back {
-  display: grid; place-items: center;
-  color: #d8d8d8;
-  background:
-    radial-gradient(60% 60% at 50% 10%, rgba(255,255,255,.04), transparent),
-    linear-gradient(180deg, #0d0d0d, #000);
+.witcher-card .plaque .line{ font-size:.9rem; }
+.witcher-card .plaque .ability{
+  margin-top:6px; font-size:.82rem; line-height:1.2rem; color:#cbd5e1;
 }
