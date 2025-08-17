@@ -1,23 +1,35 @@
-/* Start screen – całe tło */
-.start-screen{
-  min-height:100vh;
-  position:relative;
-  background-image:url('/assets/bg-start.png'); /* ⬅ tu */
-  background-size:cover;
-  background-position:center top;
+/* index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ekran startowy – tło + rozmycie od góry */
+.start-screen {
+  min-height: 100vh;
+  position: relative;
+  background-image: url('/assets/bg-start.png'); /* ścieżka względem /public */
+  background-size: cover;
+  background-position: center top;
 }
 
-/* Rozmycie „od góry” (zostaje ta sama logika) */
+/* Warstwa rozmycia „od góry” */
 .start-screen::before{
-  content:"";
-  position:absolute; inset:0;
-  background-image:url('/assets/bg-start.png'); /* ⬅ i tu */
-  background-size:cover;
-  background-position:center top;
-  filter:blur(8px);
-  transform:scale(1.03);
-  /* maska: mocno rozmyta u góry, zanik w dół */
-  mask-image:linear-gradient(to bottom, black 0%, black 35%, transparent 65%);
-  -webkit-mask-image:linear-gradient(to bottom, black 0%, black 35%, transparent 65%);
-  pointer-events:none;
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: inherit;          /* użyj tego samego tła co kontener */
+  background-size: inherit;
+  background-position: inherit;
+  filter: blur(10px);
+  transform: scale(1.04);             /* lekki overscale żeby krawędzie blur nie były widoczne */
+  /* Maska: mocny blur u góry, zanika w dół */
+  mask-image: linear-gradient(to bottom, black 0%, black 40%, transparent 70%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 40%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Treść formularza ponad warstwą blur */
+.start-screen > * {
+  position: relative;
+  z-index: 1;
 }
