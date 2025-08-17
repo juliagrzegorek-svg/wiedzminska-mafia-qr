@@ -1,37 +1,59 @@
-import React, { useEffect, useState } from 'react';
-import HostLobby from './components/HostLobby.jsx';
-import PlayerView from './components/PlayerView.jsx';
-import PlayerStart from './components/PlayerStart.jsx';
-import PlayerFlow from './components/PlayerFlow.jsx'; // jeśli masz animacje/overlay
+import React, { useEffect, useState } from "react";
+import PlayerStart from "./components/PlayerStart.jsx";
+import PlayerView from "./components/PlayerView.jsx";
+import HostLobby from "./components/HostLobby.jsx";
+import WitcherDeck from "./components/WitcherDeck.jsx";
 
-function getMode() {
-  const sp = new URLSearchParams(window.location.search);
-  if (sp.get('join') === '1') return 'start';  // wspólny QR → formularz
-  if (sp.get('flow') === '1' && window.location.hash) return 'flow'; // animowany widok karty
-  if (window.location.hash) return 'player';    // stary tryb prywatnych linków
-  return 'host';                                // pokój gospodarza
+// wykrywanie trybu z hasha url
+function getModeFromHash() {
+  const h = window.location.hash || "";
+
+  // 1) specjalnie: #host = panel gospodarza
+  if (h === "#host") return "host";
+
+  // 2) payload gracza (base64 w hashu)
+  try {
+    const b64 = h.replace(/^#/, "").replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(escape(atob(b64)));
+    const payload = JSON.parse(json);
+    if (payload?.t === "player") return "player";
+  } catch {
+    /* zostaw "start" */
+  }
+
+  // 3) domyślnie ekran startowy
+  return "start";
 }
 
 export default function App() {
-  const [mode, setMode] = useState(getMode);
+  const [mode, setMode] = useState(getModeFromHash);
+
   useEffect(() => {
-    const onChange = () => setMode(getMode());
-    window.addEventListener('hashchange', onChange);
-    window.addEventListener('popstate', onChange);
-    return () => { window.removeEventListener('hashchange', onChange); window.removeEventListener('popstate', onChange); };
+    const onHash = () => setMode(getModeFromHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  if (mode === 'start') return <PlayerStart />;
-  if (mode === 'flow')  return <PlayerFlow />;   // jeśli nie masz PlayerFlow, na razie użyj PlayerView
-  if (mode === 'player') return <PlayerView />;
+  if (mode === "player") return <PlayerView />;
 
-  // HOST (moderator)
-  return (
-    <div className="min-h-screen">
-      <div className="mx-auto max-w-5xl px-4 py-6">
-        <h1 className="mb-2 text-3xl font-bold text-white">Szepty Lasu — Wiedźmińska Mafia</h1>
-        <HostLobby />
+  if (mode === "host")
+    return (
+      <div className="min-h-screen">
+        <div className="mx-auto max-w-5xl px-4 py-6">
+          <header className="mb-6">
+            <h1 className="text-3xl font-bold tracking-tight text-white">
+              Szepty Lasu — Panel Gospodarza
+            </h1>
+            <p className="mt-1 text-sm text-zinc-400">
+              Dodaj graczy, rozdaj postacie, wylosuj potwory i wyślij prywatne linki/QR.
+            </p>
+          </header>
+          <HostLobby />
+        </div>
+        <WitcherDeck />
       </div>
-    </div>
-  );
+    );
+
+  // start: wspólne wejście z jednego QR
+  return <PlayerStart />;
 }
