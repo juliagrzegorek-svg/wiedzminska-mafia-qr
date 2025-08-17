@@ -66,10 +66,11 @@ export default function App(){
     }
   }
 
-  function triggerAlert(){
+   function triggerAlert(){
     setShowOverlay(true)
     setShowAlert(true)
-    setTimeout(()=>{
+-   setTimeout(()=>{
++   setTimeout(()=>{
       setShowAlert(false)
       setTyping('')
       let i=0
@@ -77,10 +78,14 @@ export default function App(){
       typingTimer.current = setInterval(()=>{
         i++
         setTyping(fullText.slice(0,i))
-        if(i>=fullText.length) clearInterval(typingTimer.current)
+        if(i>=fullText.length){
+          clearInterval(typingTimer.current)
+        }
       }, 22)
-    }, 1200)
+-   }, 1200) // smoke anim
++   }, 4000) // pokazuj „Ludzie uważajcie!” ~4s
   }
+
 
   function onOverlayClick(){
     if(typing.length < fullText.length) return
