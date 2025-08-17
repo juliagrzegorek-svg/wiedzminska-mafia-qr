@@ -11,10 +11,29 @@ const LS = {
   step: 'player:step'
 }
 const params = new URLSearchParams(location.search)
-const presetHeroId = params.get('pre') || null   // ← z QR hosta
+const presetHeroId = params.get('pre') || null
 const hostMode = params.get('host') === '1' || location.hash === '#host'
 
 function randItem(arr){ return arr[Math.floor(Math.random()*arr.length)] }
+
+/** Obraz z fallbackiem rozszerzeń: .png → .jpg → .webp */
+function SmartImg({ kind, id, alt }){
+  const [i,setI] = useState(0)
+  const sources = useMemo(()=>[
+    `/${kind}/${id}.png`,
+    `/${kind}/${id}.jpg`,
+    `/${kind}/${id}.webp`
+  ], [kind,id])
+  const src = sources[Math.min(i, sources.length-1)]
+  return (
+    <img
+      src={src}
+      alt={alt}
+      onError={()=> setI(v => v + 1)}
+      style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}
+    />
+  )
+}
 
 export default function App(){
   const [name,setName] = useState(localStorage.getItem(LS.name) || '')
@@ -31,18 +50,14 @@ export default function App(){
   const [typing,setTyping] = useState('')
 
   const [players,setPlayers] = useState([])
-  const [qrMap,setQrMap] = useState({})  // { charId: dataURL }
+  const [qrMap,setQrMap] = useState({})
 
   const fullText = 'W dzisiejszym jedzeniu został wykryty eliksir, który sprawił, że zdolności bohaterów pomieszały się. Czy Yen to Yen? Czy Emhyr wciąż może okazać łaskę?'
   const typingTimer = useRef(null)
 
-  // jeśli QR z presetem postaci → ustaw płeć tej postaci na starcie
   const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, [])
-  useEffect(()=>{
-    if(presetHero) setGender(presetHero.sex)
-  },[presetHero])
+  useEffect(()=>{ if(presetHero) setGender(presetHero.sex) },[presetHero])
 
-  // persist
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name])
   useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender])
   useEffect(()=>{ localStorage.setItem(LS.step, step) },[step])
@@ -50,14 +65,12 @@ export default function App(){
   useEffect(()=>{ monster && localStorage.setItem(LS.monster, JSON.stringify(monster)) },[monster])
   useEffect(()=>{ ability && localStorage.setItem(LS.ability, JSON.stringify(ability)) },[ability])
 
-  // HOST: realtime subskrypcja
   useEffect(()=>{
     if(!hostMode || !rtEnabled) return
     const un = subscribePlayers(setPlayers)
     return () => un && un()
   },[hostMode])
 
-  // HOST: generowanie QR dla każdej postaci (link do tej samej gry z pre=ID)
   useEffect(()=>{
     if(!hostMode) return
     const code = getGameCode()
@@ -87,11 +100,9 @@ export default function App(){
   function startGame(e){
     e.preventDefault()
     if(!name.trim()) return
-
     let drawn
-    if(presetHero){ // z QR: z góry wybrana postać
-      drawn = presetHero
-    }else{
+    if(presetHero) drawn = presetHero
+    else {
       const pool = CHARACTERS.filter(c => c.sex === gender)
       drawn = randItem(pool)
     }
@@ -109,8 +120,14 @@ export default function App(){
     if(step==='hero'){
       setStep('hero-placed')
       setFocus('left')
-      if(monster){ setTimeout(()=> setStep('monster'), 450) }
-      else { setTimeout(()=> triggerAlert(), 400) }
+      if(monster){
+        setTimeout(()=>{
+          setStep('monster')
+          setFocus('center')  // ← potwór na wierzchu
+        }, 450)
+      } else {
+        setTimeout(()=> triggerAlert(), 400)
+      }
       setTimeout(publish, 0)
     }
   }
@@ -139,7 +156,7 @@ export default function App(){
           clearInterval(typingTimer.current)
         }
       }, 22)
-    }, 4000) // pokazuj „Ludzie uważajcie!” ~4s
+    }, 4000)
   }
 
   function onOverlayClick(){
@@ -183,7 +200,7 @@ export default function App(){
   return (
     <div className="app">
 
-      {/* ——— HOST PANEL ——— */}
+      {/* HOST */}
       {hostMode && (
         <div className="host">
           <div className="host-header">
@@ -200,10 +217,10 @@ export default function App(){
             ))}
           </ul>
 
-          <div style={{marginTop:8, fontWeight:700}}>QR bohaterów (kliknij, by powiększyć link):</div>
+          <div style={{marginTop:8, fontWeight:700}}>QR bohaterów:</div>
           <div className="host-qr">
             {CHARACTERS.map(c=>(
-              <div className="qr-card" key={c.id} title={`${c.name}`}>
+              <div className="qr-card" key={c.id} title={c.name}>
                 <img src={qrMap[c.id]} alt={`QR ${c.name}`} />
                 <span className="small">{c.name}</span>
               </div>
@@ -212,7 +229,7 @@ export default function App(){
         </div>
       )}
 
-      {/* ——— APLIKACJA GRACZA ——— */}
+      {/* GRACZ */}
       {step==='start' && (
         <div className="start">
           <div className="top-blur">
@@ -240,7 +257,7 @@ export default function App(){
               style={{ zIndex: focus==='left'? 40: 10 }}
             >
               <div className="media">
-                {hero.img && <img src={hero.img} alt={hero.name} />}
+                <SmartImg kind="characters" id={hero.id} alt={hero.name} />
                 <div className="frame" />
               </div>
               <div className="body">
@@ -266,7 +283,7 @@ export default function App(){
               style={{ zIndex: focus==='center'? 40: 9 }}
             >
               <div className="media">
-                {monster.img && <img src={monster.img} alt={monster.name} />}
+                <SmartImg kind="monsters" id={monster.id} alt={monster.name} />
                 <div className="frame" />
               </div>
               <div className="body">
