@@ -17,6 +17,6 @@ export const CHARACTERS = [
   { id:'avallach', name:'Avallac’h', sex:'M', role:'Bohater', what:'Mędrzec', img:'/characters/avallach.jpg', abilityKey:'citizen' },
   { id:'fringilla', name:'Fringilla Vigo', sex:'K', role:'Bohaterka', what:'Czarodziejka', img:'/characters/fringilla.jpg', abilityKey:'citizen' },
 
-  // DODATKOWY OBYWATEL (bez mocy) — dla balansu 15 sztuk
+  // DODATKOWY OBYWATEL (bez mocy) — żeby było 15
   { id:'citizen1', name:'Mieszczanin', sex:'M', role:'Bohater', what:'Obywatel', img:'/characters/citizen.jpg', abilityKey:'citizen' },
-].slice(0,15) // upewnij się, że dokładnie 15
+].slice(0,15)
