@@ -11,25 +11,62 @@ const LS = {
   step: 'player:step'
 }
 
-const params = new URLSearchParams(location.search)
-const presetHeroId = params.get('pre') || null
-const hostMode = params.get('host') === '1' || location.hash === '#host'
-
+/* ——— helpers ——— */
 function randItem(arr){ return arr[Math.floor(Math.random()*arr.length)] }
+const slugify = s => s
+  ?.normalize('NFD')
+  .replace(/[\u0300-\u036f]/g,'')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g,'-')
+  .replace(/(^-|-$)/g,'')
 
-/** Obraz z fallbackiem. Jeśli podasz `src`, użyje go. */
-function SmartImg({ src, kind, id, alt }){
+/* Obraz z twardymi fallbackami: src → id → slug(name) → pierwsze słowo */
+function SmartImg({ src, kind, id, name }){
   const [i,setI] = useState(0)
+  const bases = useMemo(()=>{
+    const list = []
+    if(src) list.push(src) // najpierw to, co podałaś w danych
+    const slug = slugify(name)
+    const first = slug?.split('-')[0]
+    list.push(`/${kind}/${id}`)
+    if(slug) list.push(`/${kind}/${slug}`)
+    if(first && first!==slug) list.push(`/${kind}/${first}`)
+    return list
+  }, [src, kind, id, name])
+
+  const exts = ['.png','.jpg','.jpeg','.webp']
   const sources = useMemo(()=>{
-    if(src) return [src]
-    const base = `/${kind}/${id}`
-    return [`${base}.png`, `${base}.jpg`, `${base}.webp`]
-  }, [src, kind, id])
+    const out = []
+    for(const b of bases){
+      if(/\.(png|jpe?g|webp)$/i.test(b)) out.push(b)
+      else exts.forEach(e=> out.push(b+e))
+    }
+    return out
+  }, [bases])
+
   const real = sources[Math.min(i, sources.length-1)]
-  return <img src={real} alt={alt} onError={()=> setI(v=>v+1)} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
+  return (
+    <img
+      src={real}
+      alt={name}
+      onError={()=> setI(v => v+1)}
+      style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}
+    />
+  )
 }
 
+/* host wykrywany z ?host=1, #host, #/host i reaguje na zmianę hash */
+const detectHost = () => {
+  const u = new URL(window.location.href)
+  return u.searchParams.get('host') === '1' || u.hash.replace('#','').includes('host')
+}
+
+const params = new URLSearchParams(location.search)
+const presetHeroId = params.get('pre') || null
+
 export default function App(){
+  const [hostMode,setHostMode] = useState(detectHost())
+
   const [name,setName] = useState(localStorage.getItem(LS.name) || '')
   const [gender,setGender] = useState(localStorage.getItem(LS.gender) || 'K')
 
@@ -37,7 +74,7 @@ export default function App(){
   const [monster,setMonster] = useState(()=> JSON.parse(localStorage.getItem(LS.monster) || 'null'))
   const [ability,setAbility] = useState(()=> JSON.parse(localStorage.getItem(LS.ability) || 'null'))
   const [step,setStep] = useState(localStorage.getItem(LS.step) || 'start')
-  const [abilityOpen,setAbilityOpen] = useState(false) // możliwość wysunięcia karty zdolności
+  const [abilityOpen,setAbilityOpen] = useState(false)
 
   const [focus,setFocus] = useState('center')
   const [showOverlay,setShowOverlay] = useState(false)
@@ -50,9 +87,17 @@ export default function App(){
   const fullText = 'W dzisiejszym jedzeniu został wykryty eliksir, który sprawił, że zdolności bohaterów pomieszały się. Czy Yen to Yen? Czy Emhyr wciąż może okazać łaskę?'
   const typingTimer = useRef(null)
 
+  // hashchange dla /#host
+  useEffect(()=>{
+    const onHash = ()=> setHostMode(detectHost())
+    window.addEventListener('hashchange', onHash)
+    return ()=> window.removeEventListener('hashchange', onHash)
+  },[])
+
   const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, [])
   useEffect(()=>{ if(presetHero) setGender(presetHero.sex) },[presetHero])
 
+  // persist
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name])
   useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender])
   useEffect(()=>{ localStorage.setItem(LS.step, step) },[step])
@@ -60,13 +105,14 @@ export default function App(){
   useEffect(()=>{ monster && localStorage.setItem(LS.monster, JSON.stringify(monster)) },[monster])
   useEffect(()=>{ ability && localStorage.setItem(LS.ability, JSON.stringify(ability)) },[ability])
 
+  // HOST realtime (jeśli włączony)
   useEffect(()=>{
     if(!hostMode || !rtEnabled) return
     const un = subscribePlayers(setPlayers)
     return () => un && un()
   },[hostMode])
 
-  // QR dla hosta (bez Supabase też działa)
+  // HOST QR (działa bez Supabase)
   useEffect(()=>{
     if(!hostMode) return
     const code = getGameCode()
@@ -79,8 +125,7 @@ export default function App(){
         }))
         setQrMap(Object.fromEntries(entries))
       }catch(e){
-        console.error('QR error', e)
-        setQrMap({})
+        console.error('QR error', e); setQrMap({})
       }
     })()
   },[hostMode])
@@ -102,10 +147,7 @@ export default function App(){
     e.preventDefault()
     if(!name.trim()) return
 
-    let drawn
-    if(presetHero) drawn = presetHero
-    else drawn = randItem(CHARACTERS.filter(c => c.sex === gender))
-
+    const drawn = presetHero || randItem(CHARACTERS.filter(c => c.sex === gender))
     setHero(drawn)
     setStep('hero')
     setFocus('center')
@@ -122,10 +164,7 @@ export default function App(){
       setStep('hero-placed')
       setFocus('left')
       if(monster){
-        setTimeout(()=>{
-          setStep('monster')
-          setFocus('center')  // potwór na wierzchu
-        }, 450)
+        setTimeout(()=>{ setStep('monster'); setFocus('center') }, 450) // potwór na wierzchu
       } else {
         setTimeout(()=> triggerAlert(), 400)
       }
@@ -153,11 +192,9 @@ export default function App(){
       typingTimer.current = setInterval(()=>{
         i++
         setTyping(fullText.slice(0,i))
-        if(i>=fullText.length){
-          clearInterval(typingTimer.current)
-        }
-      }, 60) // wolniejsze „stukanie”
-    }, 4000) // „Ludzie uważajcie!” ~4s
+        if(i>=fullText.length) clearInterval(typingTimer.current)
+      }, 70) // wolniej „stuka”
+    }, 4000)
   }
 
   function onOverlayClick(){
@@ -171,28 +208,24 @@ export default function App(){
       setAbility({ ...ma, ownerName: monster.name })
     }
     setShowOverlay(false)
-    setStep('ability')       // pokaż Zdolność w CENTRUM
+    setStep('ability')    // POKAŻ NA ŚRODKU JAKO MODAL
     setFocus('right')
-    setAbilityOpen(true)     // od razu otwarta
+    setAbilityOpen(true)
     setTimeout(publish, 0)
   }
 
   function onAbilityClick(){
     if(step==='ability'){
-      // pierwszy klik po pokazaniu — odkładamy na prawo
-      setStep('done')
+      setStep('done')       // pierwszy klik — odkładamy w prawo
       setAbilityOpen(false)
       setFocus('right')
       setTimeout(publish, 0)
     } else if(step==='done'){
-      // później można ją „wysuwać” i chować
-      setAbilityOpen(v=>!v)
+      setAbilityOpen(v=>!v) // kolejne kliki — wysuwaj/chowaj
     }
   }
 
-  function togglePlaced(where){
-    setFocus(f=> f===where ? 'center' : where )
-  }
+  function togglePlaced(where){ setFocus(f=> f===where ? 'center' : where ) }
 
   function resetAll(){
     localStorage.removeItem(LS.hero)
@@ -272,7 +305,7 @@ export default function App(){
               style={{ zIndex: focus==='left'? 40: 10 }}
             >
               <div className="media">
-                <SmartImg src={hero.img} kind="characters" id={hero.id} alt={hero.name} />
+                <SmartImg src={hero.img} kind="characters" id={hero.id} name={hero.name} />
                 <div className="frame" />
               </div>
               <div className="body">
@@ -303,7 +336,7 @@ export default function App(){
               style={{ zIndex: focus==='center'? 40: 9 }}
             >
               <div className="media">
-                <SmartImg src={monster.img} kind="monsters" id={monster.id} alt={monster.name} />
+                <SmartImg src={monster.img} kind="monsters" id={monster.id} name={monster.name} />
                 <div className="frame" />
               </div>
               <div className="body">
@@ -323,7 +356,7 @@ export default function App(){
                 (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right'
               ].join(' ')}
               onClick={onAbilityClick}
-              style={{ zIndex: focus==='right'? 40: 8 }}
+              style={{ zIndex: 2000 }}
             >
               <div className="media">
                 <img src="/assets/ability.jpg" alt="Zdolność" />
