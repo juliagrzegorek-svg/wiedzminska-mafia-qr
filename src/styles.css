@@ -29,7 +29,6 @@ body{
   min-height:100vh;
   background-image: image-set(
   url('/assets/start-bg.png') type('image/png'),
-  url('/assets/start-bg.jpg') type('image/jpeg')
 );
 
   background-size:cover;
@@ -174,8 +173,10 @@ body{
   to{ filter: blur(2px); transform:scale(1.03); opacity:0 }
 }
 .alert{
-  font-size: clamp(28px, 5vw, 58px);
-  font-weight:900; letter-spacing:.5px;
+  font-family: "Cinzel", serif;
+  font-size: clamp(26px, 4.6vw, 52px);
+  font-weight: 600;                 /* lżej niż 900 */
+  letter-spacing:.2px;
   text-transform:uppercase;
   text-shadow: 0 6px 24px rgba(0,0,0,0.8);
   color:white;
@@ -185,6 +186,7 @@ body{
   border: 1px solid rgba(255,255,255,0.12);
   animation: pulse 0.8s ease-in-out 2;
 }
+
 @keyframes pulse{ 50%{ transform: scale(1.03) } }
 
 /* Typewriter */
