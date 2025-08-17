@@ -1,88 +1,80 @@
+// src/components/PlayerStart.jsx
 import React, { useMemo, useState } from "react";
-import CardFront from "./CardFront.jsx";
-import { HEROES, abilityById } from "../data/gameData.js";
+import { HEROES } from "../data/gameData.js";
 
-// pomoc: losowanie
-const pick = (arr) => arr[Math.floor(Math.random()*arr.length)];
+const FEMALES = ["filippa","margarita","shani","nenneke","triss","ciri","yennefer","keira","fringilla"].filter(Boolean);
+const MALES   = ["vernon","jaskier","emhyr","zoltan","geralt","avallach"].filter(Boolean);
+
 const b64urlEncode = (obj) => {
   const s = JSON.stringify(obj);
   const b = btoa(unescape(encodeURIComponent(s)));
-  return b.replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  return b.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
 
 export default function PlayerStart() {
-  const [gender, setGender] = useState("K"); // K / M
-  const [fullName, setFullName] = useState("");
+  const [name, setName] = useState("");
+  const [sex, setSex]   = useState("K");
 
-  // listy jakie podałaś
-  const femaleIds = ["filippa","margarita","shani","nenneke","triss","ciri","yennefer","keira","fringilla"];
-  const maleIds   = ["vernon","jaskier","emhyr","zoltan","geralt","avallach"];
-
-  const sampleHero = useMemo(() => {
-    // karta „pokazowa” pod formularzem – Ciri, żeby widzieć, że cała jest ostra
-    return HEROES.find(h => h.id === "ciri") || HEROES[0];
+  // id gry (opcjonalny seed z ?gid=xxx, albo generowany lokalnie)
+  const gid = useMemo(() => {
+    const url = new URL(window.location.href);
+    return url.searchParams.get("gid") || Math.random().toString(36).slice(2, 8);
   }, []);
 
-  const onSubmit = (e) => {
+  const submit = (e) => {
     e.preventDefault();
-    const name = fullName.trim();
-    if (!name) return;
-
-    // wybór z puli wg płci
-    const poolIds = (gender === "K" ? femaleIds : maleIds);
+    const poolIds = sex === "K" ? FEMALES : MALES;
     const pool = HEROES.filter(h => poolIds.includes(h.id));
-    const hero = pick(pool);
+    const hero = pool[Math.floor(Math.random() * pool.length)];
+    if (!hero) return;
 
-    // budujemy prywatny ładunek (bez serwera)
     const payload = {
       t: "player",
-      gid: Math.random().toString(36).slice(2,7), // lokalne ID
-      name,
+      gid,
+      name: name.trim() || "Gracz",
       heroId: hero.id,
-      monsterId: null, // potwory rozdajemy w trybie hosta
+      monsterId: null,             // potwory – dalej przez hosta (tryb kontrolowany)
     };
     const hash = b64urlEncode(payload);
-    window.location.hash = hash; // przełącz na widok gracza (PlayerView)
-    window.scrollTo(0,0);
+    window.location.href = `/#${hash}`;
   };
 
   return (
-    <div className="start-screen">
-      {/* FORMULARZ */}
-      <form className="start-form" onSubmit={onSubmit}>
-        <div className="text-lg font-semibold mb-2">Podaj dane, aby wylosować postać</div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <input
-            className="col-span-2 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-emerald-600"
-            placeholder="Imię i nazwisko"
-            value={fullName}
-            onChange={(e)=>setFullName(e.target.value)}
-          />
-          <select
-            className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-            value={gender}
-            onChange={(e)=>setGender(e.target.value)}
-          >
-            <option value="K">Kobieta</option>
-            <option value="M">Mężczyzna</option>
-          </select>
-        </div>
-        <div className="mt-3 flex gap-2">
-          <button className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500">
-            Losuj postać
-          </button>
-        </div>
-      </form>
+    <div className="start-screen flex items-start justify-center p-5">
+      <form className="start-card mt-16 w-full" onSubmit={submit}>
+        <h1 className="mb-1 text-2xl font-semibold text-white">Szepty Lasu — Start</h1>
+        <p className="mb-4 text-sm text-zinc-300">
+          Wpisz swoje imię i nazwisko oraz wybierz płeć. Otrzymasz kartę bohatera.
+        </p>
 
-      {/* KARTA POD FORMULARZEM – W CAŁOŚCI WIDOCZNA */}
-      <div className="card-slot">
-        <CardFront
-          imageUrl={sampleHero.image}
-          name={sampleHero.name}
-          role={sampleHero.baseAbilityId === "citizen" ? "Obywatel" : "Bohater"}
-          ability={abilityById[sampleHero.baseAbilityId]?.description || ""}
+        <label className="block text-sm text-zinc-200">Imię i nazwisko</label>
+        <input
+          className="mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-zinc-100 outline-none focus:ring-2 focus:ring-emerald-600"
+          placeholder="np. Julia Młodożeniak"
+          value={name} onChange={(e)=>setName(e.target.value)}
+          required
         />
-      </div>
+
+        <div className="mt-3 flex items-center gap-3">
+          <label className="text-sm text-zinc-200">Płeć:</label>
+          <label className="inline-flex items-center gap-2 text-zinc-200">
+            <input type="radio" name="sex" value="K" checked={sex==="K"} onChange={()=>setSex("K")} /> Kobieta
+          </label>
+          <label className="inline-flex items-center gap-2 text-zinc-200">
+            <input type="radio" name="sex" value="M" checked={sex==="M"} onChange={()=>setSex("M")} /> Mężczyzna
+          </label>
+        </div>
+
+        <button type="submit"
+          className="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-2 text-white font-medium hover:bg-emerald-500">
+          Start
+        </button>
+
+        <p className="mt-2 text-[12px] text-zinc-400">
+          Ten tryb działa ze **wspólnego QR**. Jeśli chcesz rozdać bez duplikatów
+          i przydzielić potwory – użyj panelu gospodarza.
+        </p>
+      </form>
     </div>
   );
 }
