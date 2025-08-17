@@ -1,73 +1,87 @@
-import React from "react";
-import PeelCard from "./PeelCard.jsx";
-import { HEROES, MONSTERS, abilityById } from "../data/gameData.js";
+import React, { useMemo, useState } from "react";
+import CardFront from "./CardFront.jsx";
+import { HEROES, abilityById } from "../data/gameData.js";
 
-const b64urlDecode = (hash) => {
-  try {
-    const b64 = hash.replace(/^#/, "").replace(/-/g, "+").replace(/_/g, "/");
-    const json = decodeURIComponent(escape(atob(b64)));
-    return JSON.parse(json);
-  } catch { return null; }
+// pomoc: losowanie
+const pick = (arr) => arr[Math.floor(Math.random()*arr.length)];
+const b64urlEncode = (obj) => {
+  const s = JSON.stringify(obj);
+  const b = btoa(unescape(encodeURIComponent(s)));
+  return b.replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 };
 
-export default function PlayerView() {
-  const payload = b64urlDecode(window.location.hash || "");
-  if (!payload || payload.t !== "player") {
-    return (
-      <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-zinc-700/50 bg-zinc-900/70 p-5 text-center text-zinc-200">
-        <div className="text-lg font-semibold">Brak karty gracza</div>
-        <p className="mt-2 text-sm text-zinc-400">
-          Ten link nie zawiera informacji o graczu. Poproś gospodarza o nowy link.
-        </p>
-        <a href="/" className="mt-4 inline-block rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
-          Wróć na stronę główną
-        </a>
-      </div>
-    );
-  }
+export default function PlayerStart() {
+  const [gender, setGender] = useState("K"); // K / M
+  const [fullName, setFullName] = useState("");
 
-  const hero = HEROES.find((h) => h.id === payload.heroId);
-  const monster = payload.monsterId ? MONSTERS.find((m) => m.id === payload.monsterId) : null;
+  // listy jakie podałaś
+  const femaleIds = ["filippa","margarita","shani","nenneke","triss","ciri","yennefer","keira","fringilla"];
+  const maleIds   = ["vernon","jaskier","emhyr","zoltan","geralt","avallach"];
 
-  const abilityTitle = hero ? abilityById[hero.baseAbilityId]?.description || "" : "";
+  const sampleHero = useMemo(() => {
+    // karta „pokazowa” pod formularzem – Ciri, żeby widzieć, że cała jest ostra
+    return HEROES.find(h => h.id === "ciri") || HEROES[0];
+  }, []);
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    const name = fullName.trim();
+    if (!name) return;
+
+    // wybór z puli wg płci
+    const poolIds = (gender === "K" ? femaleIds : maleIds);
+    const pool = HEROES.filter(h => poolIds.includes(h.id));
+    const hero = pick(pool);
+
+    // budujemy prywatny ładunek (bez serwera)
+    const payload = {
+      t: "player",
+      gid: Math.random().toString(36).slice(2,7), // lokalne ID
+      name,
+      heroId: hero.id,
+      monsterId: null, // potwory rozdajemy w trybie hosta
+    };
+    const hash = b64urlEncode(payload);
+    window.location.hash = hash; // przełącz na widok gracza (PlayerView)
+    window.scrollTo(0,0);
+  };
 
   return (
-    <div className="player-screen relative">
-      <div className="relative z-[1] mx-auto max-w-4xl p-4 text-zinc-200">
-        <div className="mb-3 text-sm text-zinc-300">
-          ID gry: <span className="font-mono">{payload.gid}</span>
+    <div className="start-screen">
+      {/* FORMULARZ */}
+      <form className="start-form" onSubmit={onSubmit}>
+        <div className="text-lg font-semibold mb-2">Podaj dane, aby wylosować postać</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input
+            className="col-span-2 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-emerald-600"
+            placeholder="Imię i nazwisko"
+            value={fullName}
+            onChange={(e)=>setFullName(e.target.value)}
+          />
+          <select
+            className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+            value={gender}
+            onChange={(e)=>setGender(e.target.value)}
+          >
+            <option value="K">Kobieta</option>
+            <option value="M">Mężczyzna</option>
+          </select>
         </div>
-        <h1 className="text-2xl font-bold drop-shadow-[0_2px_6px_rgba(0,0,0,.55)]">
-          Twoje karty, {payload.name}:
-        </h1>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-          {hero && (
-            <PeelCard
-              title={hero.name}
-              subtitle="Bohater"
-              imageUrl={hero.image}
-              description={abilityTitle}
-              showAbility={false}   /* front bohatera bez zdolności */
-            />
-          )}
-
-          {monster && (
-            <PeelCard
-              title={monster.name}
-              subtitle="Potwór"
-              imageUrl={monster.image}
-              description={monster.description}
-              showAbility={true}    /* na potworze pokaż opis */
-            />
-          )}
+        <div className="mt-3 flex gap-2">
+          <button className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500">
+            Losuj postać
+          </button>
         </div>
+      </form>
 
-        <div className="mt-6">
-          <a href="/" className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
-            Zamknij (wróć)
-          </a>
-        </div>
+      {/* KARTA POD FORMULARZEM – W CAŁOŚCI WIDOCZNA */}
+      <div className="card-slot">
+        <CardFront
+          imageUrl={sampleHero.image}
+          name={sampleHero.name}
+          role={sampleHero.baseAbilityId === "citizen" ? "Obywatel" : "Bohater"}
+          ability={abilityById[sampleHero.baseAbilityId]?.description || ""}
+        />
       </div>
     </div>
   );
