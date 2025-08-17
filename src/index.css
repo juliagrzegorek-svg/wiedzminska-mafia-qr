@@ -1,23 +1,23 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* delikatne wygładzenie */
-html, body, #root {
-  height: 100%;
+/* Start screen – całe tło */
+.start-screen{
+  min-height:100vh;
+  position:relative;
+  background-image:url('/assets/bg-start.png'); /* ⬅ tu */
+  background-size:cover;
+  background-position:center top;
 }
 
-/* karta „turkusowa” */
-.card-turquoise {
-  @apply rounded-2xl border px-4 py-3 text-sm;
-  background: linear-gradient(180deg, #0e1f20 0%, #0a1415 100%);
-  border-color: rgba(54, 164, 171, .35);
-  color: #d6f6f9;
-  box-shadow: 0 0 0 1px rgba(54,164,171,.1), 0 8px 24px rgba(0,0,0,.35);
-}
-
-/* „dym” + blur na overlay */
-.overlay-dim {
-  backdrop-filter: blur(6px);
-  background: radial-gradient(80% 60% at 50% 10%, rgba(0,0,0,.65), rgba(0,0,0,.9));
+/* Rozmycie „od góry” (zostaje ta sama logika) */
+.start-screen::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:url('/assets/bg-start.png'); /* ⬅ i tu */
+  background-size:cover;
+  background-position:center top;
+  filter:blur(8px);
+  transform:scale(1.03);
+  /* maska: mocno rozmyta u góry, zanik w dół */
+  mask-image:linear-gradient(to bottom, black 0%, black 35%, transparent 65%);
+  -webkit-mask-image:linear-gradient(to bottom, black 0%, black 35%, transparent 65%);
+  pointer-events:none;
 }
