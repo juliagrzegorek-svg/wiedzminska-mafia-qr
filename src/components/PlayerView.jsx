@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import PeelCard from "./PeelCard.jsx";
-import AbilityCard from "./AbilityCard.jsx";
-import OverlaySequence from "./OverlaySequence.jsx";
 import PlayerStart from "./PlayerStart.jsx";
+import OverlaySequence from "./OverlaySequence.jsx";
+import AbilityCard from "./AbilityCard.jsx";
 import { HEROES, MONSTERS, abilityById } from "../data/gameData.js";
 
 const b64urlDecode = (hash) => {
   try {
-    const b64 = hash.replace(/^#/, "").replace(/-/g, "+").replace(/_/g, "/");
+    const b64 = (hash || "").replace(/^#/, "").replace(/-/g, "+").replace(/_/g, "/");
     const json = decodeURIComponent(escape(atob(b64)));
     return JSON.parse(json);
   } catch {
@@ -17,18 +17,29 @@ const b64urlDecode = (hash) => {
 
 export default function PlayerView() {
   const payload = b64urlDecode(window.location.hash || "");
+  const [started, setStarted] = useState(false);
+  const [player, setPlayer] = useState(() => ({ name: payload?.name || "", gender: "auto" }));
 
-  const [startOpen, setStartOpen] = useState(true);
-  const [overlayOpen, setOverlayOpen] = useState(false);
-  const [abilityOpen, setAbilityOpen] = useState(false);
-  const [heroClosed, setHeroClosed] = useState(false);
-  const [monsterClosed, setMonsterClosed] = useState(false);
+  const hero = useMemo(
+    () => (payload ? HEROES.find((h) => h.id === payload.heroId) : null),
+    [payload]
+  );
+  const monster = useMemo(
+    () => (payload?.monsterId ? MONSTERS.find((m) => m.id === payload.monsterId) : null),
+    [payload]
+  );
 
-  useEffect(() => {
-    // pokazujemy start-overlay tylko 1 raz na urządzeniu
-    const ok = localStorage.getItem("wl-start-ok");
-    if (ok) setStartOpen(false);
-  }, []);
+  const [placedHero, setPlacedHero] = useState(false);
+  const [placedMonster, setPlacedMonster] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [showAbility, setShowAbility] = useState(false);
+
+  // po odłożeniu kart wyświetl overlay
+  const tryOverlay = (ph, pm) => {
+    const heroDone = ph || placedHero;
+    const monDone = (monster ? (pm || placedMonster) : true);
+    if (heroDone && monDone) setShowOverlay(true);
+  };
 
   if (!payload || payload.t !== "player") {
     return (
@@ -44,36 +55,47 @@ export default function PlayerView() {
     );
   }
 
-  const hero = HEROES.find((h) => h.id === payload.heroId);
-  const monster = payload.monsterId ? MONSTERS.find((m) => m.id === payload.monsterId) : null;
-  const ability = abilityById[hero?.baseAbilityId];
+  if (!started) {
+    return (
+      <PlayerStart
+        initialName={player.name}
+        onStart={({ name, gender }) => {
+          setPlayer({ name, gender });
+          setStarted(true);
+        }}
+      />
+    );
+  }
 
-  const afterStart = () => {
-    localStorage.setItem("wl-start-ok", "1");
-    setStartOpen(false);
-  };
+  const abilityTitle =
+    hero?.baseAbilityId && hero.baseAbilityId !== "citizen"
+      ? abilityById[hero.baseAbilityId]?.title || ""
+      : "Obywatel";
 
-  // po odłożeniu wszystkich kart pokaż sekwencję overlay + kartę zdolności
-  useEffect(() => {
-    if (startOpen) return;
-    const bothDone = heroClosed && (monster ? monsterClosed : true);
-    if (bothDone) setOverlayOpen(true);
-  }, [startOpen, heroClosed, monsterClosed, monster]);
+  const abilityDesc =
+    hero?.baseAbilityId && hero.baseAbilityId !== "citizen"
+      ? abilityById[hero.baseAbilityId]?.description || ""
+      : "";
 
   return (
     <div className="mx-auto max-w-4xl p-4 text-zinc-200">
-      {startOpen && <PlayerStart onConfirm={afterStart} />}
+      <div className="mb-3 text-sm text-zinc-400">
+        ID gry: <span className="font-mono">{payload.gid}</span>
+      </div>
+      <h1 className="text-2xl font-bold">Twoje karty, {player.name}:</h1>
 
-      <div className="mb-2 text-sm text-zinc-400">ID gry: <span className="font-mono">{payload.gid}</span></div>
-      <h1 className="text-2xl font-bold">Twoje karty, {payload.name}:</h1>
-
+      {/* KARTY DO ODKRYCIA */}
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         {hero && (
           <PeelCard
             title={hero.name}
             subtitle="Bohater"
             imageUrl={hero.image}
-            onClose={() => setHeroClosed(true)}
+            description=""
+            onPlace={() => {
+              setPlacedHero(true);
+              tryOverlay(true, false);
+            }}
           />
         )}
         {monster && (
@@ -82,23 +104,28 @@ export default function PlayerView() {
             subtitle="Potwór"
             imageUrl={monster.image}
             description={monster.description}
-            onClose={() => setMonsterClosed(true)}
+            onPlace={() => {
+              setPlacedMonster(true);
+              tryOverlay(false, true);
+            }}
           />
         )}
       </div>
 
-      {overlayOpen && (
+      {/* Po odłożeniu kart */}
+      {showOverlay && (
         <OverlaySequence
           onDone={() => {
-            setOverlayOpen(false);
-            setAbilityOpen(true);
+            setShowOverlay(false);
+            setShowAbility(true);
           }}
         />
       )}
 
-      {abilityOpen && ability && (
-        <div className="mt-6">
-          <AbilityCard title={ability.title} description={ability.description} />
+      {/* Zdolność po „eliksirze” / lub kanoniczna */}
+      {showAbility && (
+        <div className="mx-auto mt-5 max-w-xl">
+          <AbilityCard title={`Zdolność: ${abilityTitle}`} description={abilityDesc} />
         </div>
       )}
 
