@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import QRCode from 'qrcode'
 import { CHARACTERS } from './data/characters.js'
 import { MONSTERS } from './data/monsters.js'
 import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js'
@@ -9,6 +10,10 @@ const LS = {
   hero: 'player:hero', monster: 'player:monster', ability: 'player:ability',
   step: 'player:step'
 }
+const params = new URLSearchParams(location.search)
+const presetHeroId = params.get('pre') || null   // ← z QR hosta
+const hostMode = params.get('host') === '1' || location.hash === '#host'
+
 function randItem(arr){ return arr[Math.floor(Math.random()*arr.length)] }
 
 export default function App(){
@@ -25,14 +30,19 @@ export default function App(){
   const [showAlert,setShowAlert] = useState(false)
   const [typing,setTyping] = useState('')
 
+  const [players,setPlayers] = useState([])
+  const [qrMap,setQrMap] = useState({})  // { charId: dataURL }
+
   const fullText = 'W dzisiejszym jedzeniu został wykryty eliksir, który sprawił, że zdolności bohaterów pomieszały się. Czy Yen to Yen? Czy Emhyr wciąż może okazać łaskę?'
   const typingTimer = useRef(null)
 
-  // HOST MODE (/?host=1&g=KOD)
-  const params = new URLSearchParams(location.search)
-  const hostMode = params.get('host') === '1' || location.hash === '#host'
-  const [players,setPlayers] = useState([])
+  // jeśli QR z presetem postaci → ustaw płeć tej postaci na starcie
+  const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, [])
+  useEffect(()=>{
+    if(presetHero) setGender(presetHero.sex)
+  },[presetHero])
 
+  // persist
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name])
   useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender])
   useEffect(()=>{ localStorage.setItem(LS.step, step) },[step])
@@ -40,11 +50,25 @@ export default function App(){
   useEffect(()=>{ monster && localStorage.setItem(LS.monster, JSON.stringify(monster)) },[monster])
   useEffect(()=>{ ability && localStorage.setItem(LS.ability, JSON.stringify(ability)) },[ability])
 
-  // HOST subscribe
+  // HOST: realtime subskrypcja
   useEffect(()=>{
     if(!hostMode || !rtEnabled) return
     const un = subscribePlayers(setPlayers)
     return () => un && un()
+  },[hostMode])
+
+  // HOST: generowanie QR dla każdej postaci (link do tej samej gry z pre=ID)
+  useEffect(()=>{
+    if(!hostMode) return
+    const code = getGameCode()
+    (async ()=>{
+      const entries = await Promise.all(CHARACTERS.map(async c=>{
+        const link = `${location.origin}${location.pathname}?g=${code}&pre=${c.id}`
+        const data = await QRCode.toDataURL(link, { width: 220, margin: 1 })
+        return [c.id, data]
+      }))
+      setQrMap(Object.fromEntries(entries))
+    })()
   },[hostMode])
 
   async function publish(){
@@ -63,13 +87,21 @@ export default function App(){
   function startGame(e){
     e.preventDefault()
     if(!name.trim()) return
-    const pool = CHARACTERS.filter(c => c.sex === gender)
-    const drawn = randItem(pool)
+
+    let drawn
+    if(presetHero){ // z QR: z góry wybrana postać
+      drawn = presetHero
+    }else{
+      const pool = CHARACTERS.filter(c => c.sex === gender)
+      drawn = randItem(pool)
+    }
     setHero(drawn)
     setStep('hero')
     setFocus('center')
+
     const giveMonster = Math.random() < 0.35
     if(giveMonster) setMonster(randItem(MONSTERS)); else setMonster(null)
+
     setTimeout(publish, 0)
   }
 
@@ -145,19 +177,19 @@ export default function App(){
     setTimeout(publish, 0)
   }
 
-  // ===== helper do podglądu zdolności na karcie bohatera =====
   const previewAbility = hero ? GOOD_ABILITIES.find(a=>a.id===hero.abilityKey) : null
   const showPreview = previewAbility && previewAbility.id !== 'citizen'
 
   return (
     <div className="app">
 
-      {/* HOST PANEL */}
+      {/* ——— HOST PANEL ——— */}
       {hostMode && (
         <div className="host">
           <div className="host-header">
-            Panel Mistrza Gry — kod: {getGameCode()} {rtEnabled ? '' : '(realtime wyłączony – podaj klucze w Netlify)'}
+            Panel Mistrza Gry — kod gry: {getGameCode()} {rtEnabled ? '' : '(realtime wyłączony)'}
           </div>
+
           <ul>
             {players.map(p=>(
               <li key={p.player_id}>
@@ -167,9 +199,20 @@ export default function App(){
               </li>
             ))}
           </ul>
+
+          <div style={{marginTop:8, fontWeight:700}}>QR bohaterów (kliknij, by powiększyć link):</div>
+          <div className="host-qr">
+            {CHARACTERS.map(c=>(
+              <div className="qr-card" key={c.id} title={`${c.name}`}>
+                <img src={qrMap[c.id]} alt={`QR ${c.name}`} />
+                <span className="small">{c.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* ——— APLIKACJA GRACZA ——— */}
       {step==='start' && (
         <div className="start">
           <div className="top-blur">
@@ -207,7 +250,7 @@ export default function App(){
                   <div><b>Co robi?</b> {hero.what}</div>
                   {showPreview && (
                     <div className="small" style={{marginTop:6}}>
-                      <b>Zdolność:</b> {previewAbility.title.replace(/^.*—\\s*/,'')} — {previewAbility.description}
+                      <b>Zdolność:</b> {previewAbility.title.replace(/^.*—\s*/,'')} — {previewAbility.description}
                     </div>
                   )}
                 </div>
@@ -248,7 +291,7 @@ export default function App(){
                 <div className="frame" />
               </div>
               <div className="body">
-                <h3>{`Zdolność: ${ability.ownerName} — ${ability.title.replace(/^.*—\\s*/,'')}`}</h3>
+                <h3>{`Zdolność: ${ability.ownerName} — ${ability.title.replace(/^.*—\s*/,'')}`}</h3>
                 <div className="role">Karta zdolności</div>
                 <div className="meta">
                   <p>{ability.description}</p>
