@@ -66,25 +66,24 @@ export default function App(){
     }
   }
 
-   function triggerAlert(){
-    setShowOverlay(true)
-    setShowAlert(true)
--   setTimeout(()=>{
-+   setTimeout(()=>{
-      setShowAlert(false)
-      setTyping('')
-      let i=0
-      clearInterval(typingTimer.current)
-      typingTimer.current = setInterval(()=>{
-        i++
-        setTyping(fullText.slice(0,i))
-        if(i>=fullText.length){
-          clearInterval(typingTimer.current)
-        }
-      }, 22)
--   }, 1200) // smoke anim
-+   }, 4000) // pokazuj „Ludzie uważajcie!” ~4s
-  }
+  function triggerAlert(){
+  setShowOverlay(true);
+  setShowAlert(true);
+  setTimeout(() => {
+    setShowAlert(false);
+    setTyping('');
+    let i = 0;
+    clearInterval(typingTimer.current);
+    typingTimer.current = setInterval(() => {
+      i++;
+      setTyping(fullText.slice(0, i));
+      if (i >= fullText.length) {
+        clearInterval(typingTimer.current);
+      }
+    }, 22);
+  }, 4000); // pokazuj „Ludzie uważajcie!” ~4s
+}
+
 
 
   function onOverlayClick(){
