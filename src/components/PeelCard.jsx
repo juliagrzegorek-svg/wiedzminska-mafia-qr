@@ -1,15 +1,12 @@
-// src/components/PeelCard.jsx
 import React, { useRef, useState } from "react";
 
+/** Karta z animacją „odklejania rogu” i frontem w stylu gwentu */
 export default function PeelCard({ title, subtitle, imageUrl, description }) {
   const [open, setOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const start = useRef({ x: 0, y: 0 });
 
-  const onPointerDown = (e) => {
-    setDragging(true);
-    start.current = { x: e.clientX, y: e.clientY };
-  };
+  const onPointerDown = (e) => { setDragging(true); start.current = { x: e.clientX, y: e.clientY }; };
   const onPointerMove = (e) => {
     if (!dragging) return;
     const dx = Math.abs(e.clientX - start.current.x);
@@ -21,7 +18,7 @@ export default function PeelCard({ title, subtitle, imageUrl, description }) {
   return (
     <div className="group relative">
       <div
-        className="relative h-56 w-full [perspective:1200px]"
+        className="relative h-72 w-full [perspective:1200px]"
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
@@ -30,27 +27,18 @@ export default function PeelCard({ title, subtitle, imageUrl, description }) {
           className="absolute inset-0 rounded-2xl border border-zinc-700/60 bg-zinc-900 shadow-sm transition-transform duration-500 [transform-style:preserve-3d]"
           style={{ transform: `rotateY(${open ? 0 : 180}deg)` }}
         >
-          {/* PRZÓD */}
+          {/* FRONT (widoczny po odkryciu) */}
           <div className="absolute inset-0 overflow-hidden rounded-2xl [backface-visibility:hidden]">
-            {imageUrl && (
-              <img
-                src={imageUrl}
-                alt={title}
-                className="h-full w-full object-cover"
-                onError={(e) => (e.currentTarget.style.display = "none")}
-              />
-            )}
-            <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-zinc-400/30 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-3">
-              <div className="text-sm font-semibold text-white">{title}</div>
-              {subtitle && (
-                <div className="text-xs text-zinc-300">{subtitle}</div>
-              )}
+            <div className="ornate-card">
+              {imageUrl && <img src={imageUrl} alt={title} onError={(e)=>{e.currentTarget.style.display='none'}}/>}
+              <div className="card-caption">
+                <div className="text-sm font-semibold">{title}</div>
+                {subtitle && <div className="text-xs opacity-90">{subtitle}</div>}
+              </div>
             </div>
           </div>
 
-          {/* TYŁ */}
+          {/* TYŁ (z rogiem do pociągnięcia) */}
           <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(60%_40%_at_50%_0%,rgba(255,255,255,0.06),transparent),linear-gradient(to_bottom,#0b0b0b,#000)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
             <div className="absolute inset-0 grid place-items-center">
               <div className="rounded-xl border border-zinc-700/60 px-3 py-1 text-xs tracking-wider text-zinc-300">
@@ -71,7 +59,11 @@ export default function PeelCard({ title, subtitle, imageUrl, description }) {
         </div>
       </div>
 
-      {description && <div className="mt-2 text-xs text-zinc-400">{description}</div>}
+      {description && (
+        <div className="mt-2 text-xs text-zinc-300">
+          {description}
+        </div>
+      )}
 
       {open && (
         <div className="mt-2">
