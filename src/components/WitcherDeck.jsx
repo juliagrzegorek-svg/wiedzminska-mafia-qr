@@ -1,7 +1,5 @@
-// src/components/WitcherDeck.jsx
 import React, { useMemo, useState } from "react";
 import PeelCard from "./PeelCard.jsx";
-import { ABILITIES, HEROES, MONSTERS, abilityById } from "../data/gameData.js";
 
 const cls = (...xs) => xs.filter(Boolean).join(" ");
 const shuffle = (arr) => {
@@ -13,6 +11,115 @@ const shuffle = (arr) => {
   return a;
 };
 
+// Ścieżki obrazów (z folderu public/)
+const IMG = {
+  // heroes
+  yennefer: "/assets/heroes/yennefer.webp",
+  geralt: "/assets/heroes/geralt.webp",
+  ciri: "/assets/heroes/ciri.webp",
+  filippa: "/assets/heroes/filippa.webp",
+  jaskier: "/assets/heroes/jaskier.webp",
+  zoltan: "/assets/heroes/zoltan.webp",
+  nenneke: "/assets/heroes/nenneke.webp",
+  emhyr: "/assets/heroes/emhyr.webp",
+  vernon: "/assets/heroes/vernon.webp",
+  keira: "/assets/heroes/keira.webp",
+  margarita: "/assets/heroes/margarita.webp",
+  fringilla: "/assets/heroes/fringilla.webp",
+  sabrina: "/assets/heroes/sabrina.webp",
+  milva: "/assets/heroes/milva.webp",
+  avallach: "/assets/heroes/avallach.webp",
+  // monsters
+  vampire: "/assets/monsters/vampire.webp",
+  strzyga: "/assets/monsters/strzyga.webp",
+  werewolf: "/assets/monsters/werewolf.webp",
+  bruxa: "/assets/monsters/bruxa.webp",
+};
+
+const ABILITIES = [
+  {
+    id: "yen-doctor",
+    title: "Yennefer — Uzdrowicielka",
+    description:
+      "KAŻDEJ NOCY — budzisz się PRZED mafią i wskazujesz jedną osobę do ochrony. Jeśli zostanie zaatakowana, atak nie dochodzi do skutku. Możesz uratować SIEBIE i przetrwać noc.",
+  },
+  {
+    id: "seer",
+    title: "Geralt/Ciri — Jasnowidz(owie)",
+    description:
+      "KAŻDEJ NOCY — budzisz się PIERWSZY/A (lub naprzemiennie) i poznajesz frakcję wybranego gracza (mieszczanin/potwór). Wiedzę wykorzystujesz w dzień.",
+  },
+  {
+    id: "filippa-revive",
+    title: "Filippa Eilhart — Wskrzeszenie",
+    description:
+      "RAZ NA GRĘ — w DZIEŃ możesz ujawnić się i wskrzesić jedną wyeliminowaną osobę. Wraca do gry natychmiast.",
+  },
+  {
+    id: "bard-cancel-vote",
+    title: "Jaskier — Ballada",
+    description:
+      "RAZ NA GRĘ — możesz zaśpiewać balladę: głosowanie w ciągu dnia zostaje ANULOWANE.",
+  },
+  {
+    id: "zoltan-shield-village",
+    title: "Zoltan — Tarcza Wioski",
+    description:
+      "RAZ NA GRĘ — chronisz CAŁĄ wioskę na jedną noc. Atak potworów tej nocy NIE dochodzi do skutku.",
+  },
+  {
+    id: "nenneke-antivamp",
+    title: "Nenneke — Uleczenie Ugryzienia",
+    description:
+      "PIERWSZEJ NOCY — wybierasz jedną osobę; jeśli została ugryziona przez Wampira, LECZYSZ ugryzienie (nie umrze następnej nocy).",
+  },
+  {
+    id: "emhyr-governor",
+    title: "Emhyr — Łaska Cesarza",
+    description:
+      "RAZ NA GRĘ — możesz uratować wybraną osobę z egzekucji po głosowaniu ludu (anulujesz egzekucję).",
+  },
+  {
+    id: "citizen",
+    title: "Obywatel",
+    description: "Brak mocy specjalnej. Cel: przetrwać i pomóc wiosce pokonać potwory.",
+  },
+];
+
+const HEROES = [
+  { id: "yennefer", name: "Yennefer", baseAbilityId: "yen-doctor", image: IMG.yennefer },
+  { id: "geralt", name: "Geralt", baseAbilityId: "seer", image: IMG.geralt },
+  { id: "ciri", name: "Ciri", baseAbilityId: "seer", image: IMG.ciri },
+  { id: "filippa", name: "Filippa Eilhart", baseAbilityId: "filippa-revive", image: IMG.filippa },
+  { id: "jaskier", name: "Jaskier (Bard)", baseAbilityId: "bard-cancel-vote", image: IMG.jaskier },
+  { id: "zoltan", name: "Zoltan (Krasnolud)", baseAbilityId: "zoltan-shield-village", image: IMG.zoltan },
+  { id: "nenneke", name: "Nenneke", baseAbilityId: "nenneke-antivamp", image: IMG.nenneke },
+  { id: "emhyr", name: "Emhyr", baseAbilityId: "emhyr-governor", image: IMG.emhyr },
+  // pozostali obywatele:
+  { id: "vernon", name: "Vernon", baseAbilityId: "citizen", image: IMG.vernon },
+  { id: "keira", name: "Keira", baseAbilityId: "citizen", image: IMG.keira },
+  { id: "margarita", name: "Margarita", baseAbilityId: "citizen", image: IMG.margarita },
+  { id: "fringilla", name: "Fringilla", baseAbilityId: "citizen", image: IMG.fringilla },
+  { id: "sabrina", name: "Sabrina", baseAbilityId: "citizen", image: IMG.sabrina },
+  { id: "milva", name: "Milva", baseAbilityId: "citizen", image: IMG.milva },
+  { id: "avallach", name: "Avallac'h", baseAbilityId: "citizen", image: IMG.avallach },
+];
+
+const MONSTERS = [
+  {
+    id: "vampire",
+    name: "Wampir",
+    image: IMG.vampire,
+    description:
+      "Założyciel Mrocznego Kręgu. PIERWSZEJ NOCY dokonuje rytuału i gryzie ofiarę — ta osoba UMRZE drugiej nocy (chyba że wyleczona). Cel: zabić bohaterów i wieśniaków.",
+  },
+  { id: "strzyga", name: "Strzyga", image: IMG.strzyga, description: "NOCĄ bierze udział w wyborze ofiary razem z potworami. Cel: wyeliminować wszystkich dobrych." },
+  { id: "werewolf", name: "Wilkołak", image: IMG.werewolf, description: "NOCĄ bierze udział w wyborze ofiary razem z potworami. Cel: wyeliminować wszystkich dobrych." },
+  { id: "bruxa", name: "Bruxa", image: IMG.bruxa, description: "NOCĄ bierze udział w wyborze ofiary razem z potworami. Cel: wyeliminować wszystkich dobrych." },
+];
+
+const abilityById = Object.fromEntries(ABILITIES.map((a) => [a.id, a]));
+
 const MiniCard = ({ title, subtitle }) => (
   <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-200">
     <div className="font-semibold">{title}</div>
@@ -23,9 +130,7 @@ const MiniCard = ({ title, subtitle }) => (
 const Section = ({ title, right, children }) => (
   <section className="mt-6">
     <div className="mb-3 flex items-center justify-between">
-      <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
-        {title}
-      </h3>
+      <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">{title}</h3>
       {right}
     </div>
     {children}
@@ -39,8 +144,8 @@ const DeckButton = ({ onClick }) => (
     className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-2xl border border-zinc-700/60 bg-zinc-900/80 px-3 py-2 shadow-lg backdrop-blur transition hover:scale-105 hover:bg-zinc-900"
   >
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="opacity-90">
-      <rect x="3" y="5" width="14" height="16" rx="2" stroke="currentColor" />
-      <rect x="7" y="3" width="14" height="16" rx="2" stroke="currentColor" className="-ml-2" />
+      <rect x="3" y="5" width="14" height="16" rx="2" stroke="currentColor"/>
+      <rect x="7" y="3" width="14" height="16" rx="2" stroke="currentColor" className="-ml-2"/>
     </svg>
     <span className="text-sm">Talia</span>
   </button>
@@ -49,11 +154,19 @@ const DeckButton = ({ onClick }) => (
 const Drawer = ({ open, onClose, children }) => (
   <div className={cls("fixed inset-0 z-30 overflow-hidden", open ? "pointer-events-auto" : "pointer-events-none")}>
     <div onClick={onClose} className={cls("absolute inset-0 bg-black/60 transition-opacity", open ? "opacity-100" : "opacity-0")} />
-    <div className={cls("absolute bottom-0 left-0 right-0 max-h-[85%] rounded-t-3xl border-t border-zinc-700/60 bg-zinc-950 p-4 shadow-2xl transition-transform", open ? "translate-y-0" : "translate-y-full")} role="dialog" aria-modal="true">
+    <div
+      className={cls(
+        "absolute bottom-0 left-0 right-0 max-h-[85%] rounded-t-3xl border-t border-zinc-700/60 bg-zinc-950 p-4 shadow-2xl transition-transform",
+        open ? "translate-y-0" : "translate-y-full"
+      )}
+      role="dialog" aria-modal="true"
+    >
       <div className="mx-auto max-w-6xl">
         <div className="mb-3 flex items-center justify-between">
           <div className="text-base font-semibold text-zinc-100">Talia gry</div>
-          <button onClick={onClose} className="rounded-lg border border-zinc-700/60 px-2 py-1 text-sm text-zinc-300 hover:bg-zinc-900">Zamknij</button>
+          <button onClick={onClose} className="rounded-lg border border-zinc-700/60 px-2 py-1 text-sm text-zinc-300 hover:bg-zinc-900">
+            Zamknij
+          </button>
         </div>
         {children}
       </div>
@@ -68,13 +181,12 @@ export default function WitcherDeck() {
   const [elixirPairs, setElixirPairs] = useState(null);
 
   const canonicalPairs = useMemo(
-    () =>
-      HEROES.map((h) => ({
-        heroId: h.id,
-        heroName: h.name,
-        abilityId: h.baseAbilityId,
-        abilityTitle: abilityById[h.baseAbilityId]?.title ?? "",
-      })),
+    () => HEROES.map((h) => ({
+      heroId: h.id,
+      heroName: h.name,
+      abilityId: h.baseAbilityId,
+      abilityTitle: abilityById[h.baseAbilityId]?.title ?? "",
+    })),
     []
   );
 
@@ -97,35 +209,31 @@ export default function WitcherDeck() {
   return (
     <div className="min-h-[70vh] w-full bg-gradient-to-b from-zinc-950 to-black p-4 text-zinc-200">
       <header className="mx-auto max-w-5xl">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-          Szepty Lasu — Talia ról i funkcji
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Szepty Lasu — Talia ról i funkcji</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Kanon: stałe przypisania ról. W scenariuszu z eliksirem funkcje zostają
-          pomieszane — porównasz pary w panelu talii.
+          Kanon: stałe przypisania ról. W scenariuszu z eliksirem funkcje zostają pomieszane — porównasz pary w panelu talii.
         </p>
       </header>
 
       <Section title="Kanon: przypisania bohater → funkcja">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {canonicalPairs
-            .filter((p) => p.abilityId !== "citizen")
-            .map((p) => {
-              const hero = HEROES.find((h) => h.id === p.heroId);
-              return (
-                <PeelCard
-                  key={p.heroId}
-                  title={hero.name}
-                  subtitle="Bohater"
-                  imageUrl={hero.image}
-                  description={abilityById[p.abilityId].title}
-                />
-              );
-            })}
+          {canonicalPairs.filter((p) => p.abilityId !== "citizen").map((p) => {
+            const hero = HEROES.find(h => h.id === p.heroId);
+            return (
+              <PeelCard
+                key={p.heroId}
+                title={hero.name}
+                subtitle="Bohater"
+                imageUrl={hero.image}
+                description={abilityById[p.abilityId].title}
+              />
+            );
+          })}
         </div>
       </Section>
 
       <DeckButton onClick={() => setOpen(true)} />
+
       <Drawer open={open} onClose={() => setOpen(false)}>
         <div className="mb-4 flex flex-wrap gap-2">
           <button className={cls("rounded-xl border px-3 py-1.5 text-sm", tab === "heroes" ? "border-zinc-500 bg-zinc-800 text-white" : "border-zinc-700 bg-zinc-900 text-zinc-300")} onClick={() => setTab("heroes")}>Bohaterowie</button>
@@ -154,13 +262,7 @@ export default function WitcherDeck() {
           <Section title="Potwory">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {MONSTERS.map((m) => (
-                <PeelCard
-                  key={m.id}
-                  title={m.name}
-                  subtitle="Potwór"
-                  imageUrl={m.image}
-                  description={m.description}
-                />
+                <PeelCard key={m.id} title={m.name} subtitle="Potwór" imageUrl={m.image} description={m.description} />
               ))}
             </div>
           </Section>
@@ -171,16 +273,10 @@ export default function WitcherDeck() {
             title="Funkcje (pomieszane, żeby utrudnić)"
             right={
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShuffledFunctions(shuffle(ABILITIES))}
-                  className="rounded-lg border border-zinc-700/60 px-3 py-1.5 text-sm hover:bg-zinc-900"
-                >
+                <button onClick={() => setShuffledFunctions(shuffle(ABILITIES))} className="rounded-lg border border-zinc-700/60 px-3 py-1.5 text-sm hover:bg-zinc-900">
                   Pomieszaj ponownie
                 </button>
-                <button
-                  onClick={makeElixirPairs}
-                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
-                >
+                <button onClick={makeElixirPairs} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500">
                   Uruchom scenariusz eliksiru → Pary
                 </button>
               </div>
@@ -188,13 +284,7 @@ export default function WitcherDeck() {
           >
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {shuffledFunctions.map((a) => (
-                <PeelCard
-                  key={a.id}
-                  title={a.title}
-                  subtitle="Funkcja"
-                  imageUrl={null}
-                  description={a.description}
-                />
+                <PeelCard key={a.id} title={a.title} subtitle="Funkcja" imageUrl={null} description={a.description} />
               ))}
             </div>
           </Section>
@@ -204,44 +294,26 @@ export default function WitcherDeck() {
           <Section
             title="Parowanie: po LEWEJ — aktualne po eliksirze, po PRAWEJ — kanon"
             right={
-              <button
-                onClick={makeElixirPairs}
-                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
-              >
+              <button onClick={makeElixirPairs} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500">
                 Pomieszaj jeszcze raz
               </button>
             }
           >
             {!elixirPairs ? (
-              <div className="text-sm text-zinc-400">
-                Kliknij „Uruchom scenariusz eliksiru”, aby zobaczyć pary.
-              </div>
+              <div className="text-sm text-zinc-400">Kliknij „Uruchom scenariusz eliksiru”, aby zobaczyć pary.</div>
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {elixirPairs.map((p) => {
-                  const hero = HEROES.find((h) => h.id === p.heroId);
+                  const hero = HEROES.find(h => h.id === p.heroId);
                   return (
-                    <div
-                      key={p.heroId}
-                      className="grid grid-cols-2 items-center gap-3 rounded-2xl border border-zinc-700/50 bg-zinc-900/60 p-3"
-                    >
+                    <div key={p.heroId} className="grid grid-cols-2 items-center gap-3 rounded-2xl border border-zinc-700/50 bg-zinc-900/60 p-3">
                       <div>
-                        <div className="mb-1 text-xs uppercase tracking-wide text-zinc-400">
-                          Aktualnie (po eliksirze)
-                        </div>
-                        <MiniCard
-                          title={hero.name}
-                          subtitle={p.currentAbilityTitle}
-                        />
+                        <div className="mb-1 text-xs uppercase tracking-wide text-zinc-400">Aktualnie (po eliksirze)</div>
+                        <MiniCard title={hero.name} subtitle={p.currentAbilityTitle} />
                       </div>
                       <div>
-                        <div className="mb-1 text-xs uppercase tracking-wide text-zinc-400">
-                          Kanon (właściwe)
-                        </div>
-                        <MiniCard
-                          title={hero.name}
-                          subtitle={p.canonicalAbilityTitle}
-                        />
+                        <div className="mb-1 text-xs uppercase tracking-wide text-zinc-400">Kanon (właściwe)</div>
+                        <MiniCard title={hero.name} subtitle={p.canonicalAbilityTitle} />
                       </div>
                     </div>
                   );
