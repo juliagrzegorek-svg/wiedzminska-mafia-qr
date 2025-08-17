@@ -1,8 +1,6 @@
-// src/data/gameData.js
-
-// ŚCIEŻKI – masz PNG w public/assets/...
+// ŚCIEŻKI DO public/assets/*
 export const IMG = {
-  // bohaterowie
+  // BOHATEROWIE
   yennefer: "/assets/heroes/yennefer.png",
   geralt: "/assets/heroes/geralt.png",
   ciri: "/assets/heroes/ciri.png",
@@ -17,7 +15,7 @@ export const IMG = {
   shani: "/assets/heroes/shani.png",
   triss: "/assets/heroes/triss.png",
 
-  // potwory
+  // POTWORY
   vampire: "/assets/monsters/wampir.png",
   strzyga: "/assets/monsters/strzyga.png",
   werewolf: "/assets/monsters/wilkolak.png",
@@ -25,7 +23,6 @@ export const IMG = {
   upior: "/assets/monsters/upior.png",
 };
 
-// kanoniczne moce
 export const ABILITIES = [
   {
     id: "yen-healer",
@@ -75,40 +72,33 @@ export const ABILITIES = [
     description:
       "RAZ NA GRĘ: możesz uratować wybraną osobę z egzekucji po głosowaniu ludu (anulujesz egzekucję).",
   },
-  {
-    id: "citizen",
-    title: "Obywatel",
-    description:
-      "Brak mocy specjalnej. Cel: przetrwać i pomóc wiosce pokonać potwory.",
-  },
+  { id: "citizen", title: "Obywatel", description: "Brak mocy specjalnej. Cel: przetrwać i pomóc wiosce pokonać potwory." },
 ];
 
-// BOHATEROWIE (z płcią)
-export const HEROES = [
-  // kobiety
-  { id: "yennefer", gender: "K", name: "Yennefer",     baseAbilityId: "yen-healer",       image: IMG.yennefer },
-  { id: "ciri",     gender: "K", name: "Ciri",         baseAbilityId: "ciri-seer",        image: IMG.ciri },
-  { id: "filippa",  gender: "K", name: "Filippa",      baseAbilityId: "filippa-revive",   image: IMG.filippa },
-  { id: "nenneke",  gender: "K", name: "Nenneke",      baseAbilityId: "nenneke-antivamp", image: IMG.nenneke },
-  { id: "triss",    gender: "K", name: "Triss",        baseAbilityId: "citizen",          image: IMG.triss },
-  { id: "keira",    gender: "K", name: "Keira",        baseAbilityId: "citizen",          image: IMG.keira },
-  { id: "margarita",gender: "K", name: "Margarita",    baseAbilityId: "citizen",          image: IMG.margarita },
-  { id: "shani",    gender: "K", name: "Shani",        baseAbilityId: "citizen",          image: IMG.shani },
+export const abilityById = Object.fromEntries(ABILITIES.map((a) => [a.id, a]));
 
-  // mężczyźni
-  { id: "geralt",   gender: "M", name: "Geralt",       baseAbilityId: "geralt-seer",      image: IMG.geralt },
-  { id: "jaskier",  gender: "M", name: "Jaskier",      baseAbilityId: "bard-cancel-vote", image: IMG.jaskier },
-  { id: "zoltan",   gender: "M", name: "Zoltan",       baseAbilityId: "zoltan-shield-village", image: IMG.zoltan },
-  { id: "emhyr",    gender: "M", name: "Emhyr",        baseAbilityId: "emhyr-pardon",     image: IMG.emhyr },
-  { id: "vernon",   gender: "M", name: "Vernon",       baseAbilityId: "citizen",          image: IMG.vernon },
+export const HEROES = [
+  { id: "yennefer", name: "Yennefer", baseAbilityId: "yen-healer", image: IMG.yennefer },
+  { id: "geralt", name: "Geralt", baseAbilityId: "geralt-seer", image: IMG.geralt },
+  { id: "ciri", name: "Ciri", baseAbilityId: "ciri-seer", image: IMG.ciri },
+  { id: "filippa", name: "Filippa Eilhart", baseAbilityId: "filippa-revive", image: IMG.filippa },
+  { id: "jaskier", name: "Jaskier", baseAbilityId: "bard-cancel-vote", image: IMG.jaskier },
+  { id: "zoltan", name: "Zoltan (Krasnolud)", baseAbilityId: "zoltan-shield-village", image: IMG.zoltan },
+  { id: "nenneke", name: "Nenneke", baseAbilityId: "nenneke-antivamp", image: IMG.nenneke },
+  { id: "emhyr", name: "Emhyr", baseAbilityId: "emhyr-pardon", image: IMG.emhyr },
+
+  // obywatele
+  { id: "vernon", name: "Vernon", baseAbilityId: "citizen", image: IMG.vernon },
+  { id: "keira", name: "Keira", baseAbilityId: "citizen", image: IMG.keira },
+  { id: "margarita", name: "Margarita", baseAbilityId: "citizen", image: IMG.margarita },
+  { id: "shani", name: "Shani", baseAbilityId: "citizen", image: IMG.shani },
+  { id: "triss", name: "Triss", baseAbilityId: "citizen", image: IMG.triss },
 ];
 
 export const MONSTERS = [
-  { id: "vampire", name: "Wampir",   image: IMG.vampire, description: "Założyciel Mrocznego Kręgu. PIERWSZEJ NOCY gryzie ofiarę — umrze DRUGIEJ NOCY (chyba że wyleczona)." },
-  { id: "strzyga", name: "Strzyga",  image: IMG.strzyga, description: "Nocą współdecyduje z potworami o ofierze." },
-  { id: "werewolf",name: "Wilkołak", image: IMG.werewolf,description: "Nocą współdecyduje z potworami o ofierze." },
-  { id: "bruxa",   name: "Bruxa",    image: IMG.bruxa,   description: "Nocą współdecyduje z potworami o ofierze." },
-  { id: "upior",   name: "Upiór",    image: IMG.upior,   description: "Nocą współdecyduje z potworami o ofierze." },
+  { id: "vampire", name: "Wampir", image: IMG.vampire, description: "Założyciel Mrocznego Kręgu. PIERWSZEJ NOCY gryzie ofiarę — umrze drugiej nocy (chyba że wyleczona)." },
+  { id: "strzyga", name: "Strzyga", image: IMG.strzyga, description: "Nocą współdecyduje z potworami o ofierze." },
+  { id: "werewolf", name: "Wilkołak", image: IMG.werewolf, description: "Nocą współdecyduje z potworami o ofierze." },
+  { id: "bruxa", name: "Bruxa", image: IMG.bruxa, description: "Nocą współdecyduje z potworami o ofierze." },
+  { id: "upior", name: "Upiór", image: IMG.upior, description: "Nocą współdecyduje z potworami o ofierze." },
 ];
-
-export const abilityById = Object.fromEntries(ABILITIES.map(a => [a.id, a]));
