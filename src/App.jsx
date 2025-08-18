@@ -1,6 +1,7 @@
 /* MEGA-FALLBACK do public/assets (obsługuje spacje, PL znaki, wielkie litery i różne rozszerzenia) */
 function SmartImg({ src, kind, id, name }) {
   const [i, setI] = React.useState(0);
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
   const strip = (s) =>
     (s || "").trim().replace(/\s+/g, " ");
@@ -81,4 +82,7 @@ function SmartImg({ src, kind, id, name }) {
       style={{ width: "100%", height: "100%", objectFit: "contain", objectPosition: "center" }}
     />
   );
+}
+export default function App() {
+  // ...
 }
