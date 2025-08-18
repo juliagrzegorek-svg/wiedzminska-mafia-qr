@@ -1,8 +1,20 @@
 /* MEGA-FALLBACK do public/assets (obsługuje spacje, PL znaki, wielkie litery i różne rozszerzenia) */
+// App.jsx — POCZĄTEK PLIKU
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import QRCode from 'qrcode';
+import { CHARACTERS } from './data/characters.js';
+import { MONSTERS } from './data/monsters.js';
+import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js';
+import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realtime.js';
+import './styles.css'; // jeśli używasz
+
+// ...dopiero potem definicje funkcji/komponentów:
+function SmartImg({ src, kind, id, name }) {
+  const [i, setI] = useState(0); // możesz użyć useState zamiast React.useState
+  // reszta kodu SmartImg...
+}
 function SmartImg({ src, kind, id, name }) {
   const [i, setI] = React.useState(0);
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-
   const strip = (s) =>
     (s || "").trim().replace(/\s+/g, " ");
   const deacc = (s) =>
