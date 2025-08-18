@@ -10,6 +10,9 @@ import './styles.css';
 /* SmartImg — JEDYNA definicja */
 function SmartImg({ src, kind, id, name }) {
   const [i, setI] = useState(0);
+export default function App() {
+  // ...
+}
 
   const strip = (s) => (s || '').trim().replace(/\s+/g, ' ');
   const deacc = (s) => strip(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
