@@ -1,4 +1,24 @@
 // src/data/characters.js
+// Bohaterowie – z pierwotnymi mocami (id + tytuł) i obrazkami
+
+export const HERO_ORDER = [
+  "ciri",
+  "geralt",
+  "yennefer",
+  "filippa",
+  "jaskier",
+  "zoltan",
+  "nenneke",
+  "triss",
+  "shani",
+  "fringilla",
+  "margarita",
+  "keira",
+  "vernon",
+  "emhyr",
+  "avallach",
+];
+
 export const CHARACTERS = [
   {
     id: "ciri",
@@ -25,7 +45,7 @@ export const CHARACTERS = [
     name: "Yennefer",
     gender: "f",
     role: "Bohaterka",
-    what: "Czarodziejka", // opis „co robi?”
+    what: "Czarodziejka",
     img: "/assets/heroes/yennefer.png",
     baseAbilityId: "yen-healer",
     baseAbilityTitle: "Yennefer — Uzdrowicielka",
@@ -77,8 +97,8 @@ export const CHARACTERS = [
     role: "Bohaterka",
     what: "Czarodziejka",
     img: "/assets/heroes/triss.png",
-    // jeśli masz w abilities dedykowane ID — wpisz je tutaj
-    baseAbilityId: "geralt-seer",            // (przykład) lub własne, jeśli dodałaś w abilities
+    // jeżeli chcesz inną pierwotną – podmień ID i tytuł
+    baseAbilityId: "ciri-seer",
     baseAbilityTitle: "Triss Merigold — Jasnowidzka",
   },
   {
@@ -88,7 +108,7 @@ export const CHARACTERS = [
     role: "Bohaterka",
     what: "Lekarka",
     img: "/assets/heroes/shani.png",
-    baseAbilityId: "yen-healer",             // jeśli Shani też leczy — użyj tego
+    baseAbilityId: "yen-healer",
     baseAbilityTitle: "Shani — Uzdrowicielka",
   },
   {
@@ -98,7 +118,7 @@ export const CHARACTERS = [
     role: "Bohaterka",
     what: "Czarodziejka",
     img: "/assets/heroes/fringilla.png",
-    baseAbilityId: "citizen",                // jeśli bez mocy
+    baseAbilityId: "citizen",
     baseAbilityTitle: "Obywatel",
   },
   {
