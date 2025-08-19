@@ -1,4 +1,3 @@
-// === src/App.jsx ===
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { CHARACTERS } from './data/characters.js';
@@ -26,18 +25,9 @@ function imageCandidates(item) {
   if (!item) return [];
   const id = (item.id || '').toLowerCase();
   const hasExt = (p) => /\.(png|jpe?g|webp)$/i.test(p);
-  const bases = [
-    item.img,
-    `/assets/${id}`,
-    `/assets/heroes/${id}`,
-    `/assets/monsters/${id}`,
-    `/assets/characters/${id}`,
-  ].filter(Boolean);
+  const bases = [item.img, `/assets/${id}`, `/assets/heroes/${id}`, `/assets/monsters/${id}`, `/assets/characters/${id}`].filter(Boolean);
   const out = [];
-  for (const b of bases) {
-    if (hasExt(b)) out.push(b);
-    else out.push(`${b}.png`, `${b}.jpg`, `${b}.webp`);
-  }
+  for (const b of bases) out.push(hasExt(b) ? b : `${b}.png`, `${b}.jpg`, `${b}.webp`);
   return out;
 }
 
@@ -50,6 +40,13 @@ const isHost = () => {
 const params = new URLSearchParams(location.search);
 const presetHeroId = params.get('pre') || null;
 
+/* ---------- pomocnicze: dopasowanie płci ---------- */
+function sexMatches(character, chosen){
+  const s = (character.sex || '').toString().toUpperCase();      // w danych może być K/M/F/Male/Female…
+  if (chosen === 'K') return ['K','F','W','FEMALE'].includes(s);
+  return ['M','MALE'].includes(s);
+}
+
 /* ---------- domyślne zdolności ---------- */
 function getDefaultAbilityForHero(hero){
   if(!hero) return null;
@@ -60,10 +57,18 @@ function getDefaultAbilityForHero(hero){
 }
 function getDefaultAbilityForMonster(monster){
   if(!monster) return null;
-  const id = monster.baseAbilityId;
-  if (!id) return null;
-  return MONSTER_ABILITIES.find(a => a.id === id) || null;
+  // preferowana: po id
+  if (monster.baseAbilityId) {
+    const found = MONSTER_ABILITIES.find(a => a.id === monster.baseAbilityId);
+    if (found) return found;
+  }
+  // fallback: po prefiksie id potwora
+  const pref = (monster.id || '') + '-';
+  const byPrefix = MONSTER_ABILITIES.find(a => (a.id || '').startsWith(pref));
+  return byPrefix || null;
 }
+
+/* ---------- kto „jest na obrazku” danej zdolności ---------- */
 function resolveOwnerOfAbility(abilityId){
   if(!abilityId) return null;
   const ownerHero = CHARACTERS.find(h => getDefaultAbilityForHero(h)?.id === abilityId);
@@ -75,16 +80,16 @@ function resolveOwnerOfAbility(abilityId){
 
 /* ---------- losowanie zdolności (bez mieszania potworów) ---------- */
 function pickAbility({ hero, monster }) {
-  // potwór: NIGDY nie mieszamy – bierzemy bazową
+  // POTWÓR: zawsze własna baza (zero mieszania)
   if (monster) {
     const base = getDefaultAbilityForMonster(monster);
     if (!base) return null;
     return { ...base, ownerType: 'monster', ownerName: monster.name };
   }
-  // bohater: los z GOOD (ew. ograniczony onlyFor)
+  // BOHATER: z puli dobrych; podpis i portret = właściciel tej zdolności
   if (hero) {
     const pool = GOOD_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(hero.id));
-    const list = (pool.length ? pool : GOOD_ABILITIES);
+    const list = pool.length ? pool : GOOD_ABILITIES;
     const ability = list[Math.floor(Math.random() * list.length)];
     const owner = resolveOwnerOfAbility(ability.id);
     const ownerName = owner?.obj?.name || hero.name;
@@ -109,8 +114,7 @@ export default function App(){
   const [abilityOpen,setAbilityOpen] = useState(false);
   const [focus,setFocus] = useState('center');
   const [zoom,setZoom]   = useState(null);
-
-  const [menuOpen,setMenuOpen] = useState(false);
+  const [menuOpen,setMenuOpen] = useState(false);   // hamburger
 
   // host
   const [players,setPlayers] = useState([]);
@@ -123,16 +127,14 @@ export default function App(){
   const [showAlert,setShowAlert] = useState(false);
   const [typing,setTyping] = useState('');
   const typingTimer = useRef(null);
-  const fullText =
-  'W dzisiejszym jedzeniu wykryto eliksir, po którym zdolności Waszych postaci wymieszały się. ' +
-  'Czy Yen dalej leczy a Emhyr jako sędzia uniewinni przed śmiercią? ' +
-  'Strzeżcie się Mrocznego Kręgu,  — szepczą, tną nici zaufania, sabotują. ' +
-  'Nie wierzcie nikomu. Nawet sobie.';
 
+  // (nowy, proszony tekst – bez capslocka)
+  const fullText = 'W dzisiejszym jedzeniu wykryto eliksir, po którym zdolności Waszych postaci wymieszały się. Czy Yen jest dalej lekarką a Emhyr jako sędzia nadal uniewinni przed śmiercią? Strzeżcie się Mrocznego Kręgu,  — szepczą, tną nici zaufania, sabotują. Nie wierzcie nikomu. Nawet sobie.';
 
   const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, []);
   useEffect(()=>{ if(presetHero) setGender(presetHero.sex); },[presetHero]);
 
+  // persist
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name]);
   useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender]);
   useEffect(()=>{ localStorage.setItem(LS.step, step) },[step]);
@@ -144,10 +146,17 @@ export default function App(){
   // host realtime
   useEffect(()=>{ if(!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return ()=>un&&un() },[hostMode]);
 
-  // QR start
-  useEffect(()=>{ (async()=>{ const link = `${location.origin}${location.pathname}?g=${getGameCode()}`; const data = await QRCode.toDataURL(link,{width:220,margin:1}); setQrStart(data); })().catch(()=>{}); },[]);
+  // QR start (po lewej)
+  useEffect(()=>{ (async()=>{
+      const link = `${location.origin}${location.pathname}?g=${getGameCode()}`;
+      const data = await QRCode.toDataURL(link,{width:220,margin:1});
+      setQrStart(data);
+    })().catch(()=>{}); },[]);
   function buildLinkFor(c){ return `${location.origin}${location.pathname}?g=${getGameCode()}&pre=${c.id}` }
-  useEffect(()=>{ if(!hostMode) return; (async()=>{ const entries = await Promise.all(CHARACTERS.map(async c=>[c.id, await QRCode.toDataURL(buildLinkFor(c),{width:220,margin:1})])); setQrMap(Object.fromEntries(entries)); })().catch(()=>{}); },[hostMode]);
+  useEffect(()=>{ if(!hostMode) return; (async()=>{
+      const entries = await Promise.all(CHARACTERS.map(async c=>[c.id, await QRCode.toDataURL(buildLinkFor(c),{width:220,margin:1})]));
+      setQrMap(Object.fromEntries(entries));
+    })().catch(()=>{}); },[hostMode]);
 
   async function publish(){
     await upsertPlayer({
@@ -155,38 +164,34 @@ export default function App(){
       hero_id: hero?.id || null, hero_name: hero?.name || null,
       monster_id: monster?.id || null, monster_name: monster?.name || null,
       ability_id: ability?.id || null,
-      ability_title: ability ? (`${ability.ownerName} — ${ability.title?.split('—')?.[1]?.trim() || ability.title}`) : null,
+      ability_title: ability ? (`${ability.ownerName} — ${(ability.title?.split('—')?.[1] || ability.title).trim()}`) : null,
       ability_side: ability?.ownerType || null,
       updated_at: new Date().toISOString()
     });
   }
 
-  const randItem = (a)=>a[Math.floor(Math.random()*a.length)];
+  const rand = (a)=>a[Math.floor(Math.random()*a.length)];
+
   function startGame(e){
-  e.preventDefault();
-  if(!name.trim()) return;
+    e.preventDefault();
+    if(!name.trim()) return;
+    const pool = CHARACTERS.filter(c=>sexMatches(c, gender));
+    const drawn = presetHero || (pool.length ? rand(pool) : rand(CHARACTERS));
+    setHero(drawn);
+    setStep('hero');
+    setFocus('center');
+    setAbilityOpen(false);
 
-  // twardy wybór zgodny z płcią
-  const pool = CHARACTERS.filter(c => c.sex === gender);
-  let drawn = presetHero || (pool.length ? randItem(pool) : randItem(CHARACTERS));
-  if (drawn && drawn.sex !== gender && pool.length) drawn = randItem(pool);
+    const giveMonster = Math.random() < 0.35;
+    setMonster(giveMonster ? rand(MONSTERS) : null);
 
-  setHero(drawn);
-  setStep('hero');
-  setFocus('center');
-  setAbilityOpen(false);
-
-  const giveMonster = Math.random() < 0.35;
-  if (giveMonster) setMonster(randItem(MONSTERS)); else setMonster(null);
-
-  setTimeout(publish, 0);
-}
-
-
+    setTimeout(publish, 0);
+  }
 
   function onHeroClick(){
     if(step==='hero'){
-      setStep('hero-placed'); setFocus('left');
+      setStep('hero-placed');           // odkładamy
+      setFocus('left');
       if(monster) setTimeout(()=>{ setStep('monster'); setFocus('center') }, 450);
       else setTimeout(()=> triggerAlert(), 400);
       setTimeout(publish, 0);
@@ -194,51 +199,39 @@ export default function App(){
   }
   function onMonsterClick(){
     if(step==='monster'){
-      setStep('monster-placed'); setFocus('center');
+      setStep('monster-placed');
+      setFocus('center');
       setTimeout(()=> triggerAlert(), 400);
       setTimeout(publish, 0);
     } else setZoom(z=>z==='center'?null:'center');
   }
 
-  // >>> po zakończeniu narracji (albo po kliknięciu) zawsze pokaż zdolność
-  function revealAbility() {
-    if (!ability) {
+  function triggerAlert(){
+    // upewnij się, że karty są „odłożone” zanim pojawi się dym
+    if (monster) setStep('monster-placed'); else setStep('hero-placed');
+    setShowOverlay(true); setShowAlert(true);
+    setTimeout(()=>{
+      setShowAlert(false); setTyping(''); let i=0;
+      clearInterval(typingTimer.current);
+      typingTimer.current = setInterval(()=>{
+        i++; setTyping(fullText.slice(0,i));
+        if(i>=fullText.length) clearInterval(typingTimer.current);
+      }, 55);
+    }, 1400); // krótka pauza -> widać odkładanie kart
+  }
+  function onOverlayClick(){
+    // znika dopiero po KLIKNIĘCIU i dopiero gdy tekst się „wypisał”
+    if(typing.length < fullText.length) return;
+
+    if(!ability){
       const picked = pickAbility({ hero, monster });
       if (picked) setAbility(picked);
     }
     setShowOverlay(false);
-    setStep('ability'); setFocus('right'); setAbilityOpen(true);
+    setStep('ability');
+    setFocus('right');
+    setAbilityOpen(true);
     setTimeout(publish, 0);
-  }
-
-  function triggerAlert(){
-  // żadnych powiększeń podczas dymu
-  setZoom(null);
-  setAbilityOpen(false);
-
-  // jeśli ktoś nie stuknął w kartę – odłóżmy ją programowo
-  setStep(s => s === 'hero' ? 'hero-placed' : (s === 'monster' ? 'monster-placed' : s));
-
-  setShowOverlay(true);
-  setShowAlert(true);
-
-  setTimeout(()=>{
-    setShowAlert(false);
-    setTyping('');
-    let i = 0;
-    clearInterval(typingTimer.current);
-    typingTimer.current = setInterval(()=>{
-      i++;
-      setTyping(fullText.slice(0, i));
-      if(i >= fullText.length) clearInterval(typingTimer.current);
-    }, 70);
-  }, 4000);
-}
-
-
-  function onOverlayClick(){
-    // klik = skrót do końca
-    revealAbility();
   }
 
   function onAbilityClick(){
@@ -260,7 +253,6 @@ export default function App(){
   }, [ability]);
 
   const abilityClass = ability?.ownerType === 'monster' ? 'monster' : 'good';
-
   const abilityNameOnly = (() => {
     if (!ability?.title) return '';
     const parts = ability.title.split('—');
@@ -287,7 +279,6 @@ export default function App(){
 
   return (
     <div className="app">
-
       {/* HOST */}
       {hostMode && (
         <div className="host">
@@ -343,9 +334,9 @@ export default function App(){
       {/* START */}
       {step==='start' && (
         <div className="start">
-          <div className="start-inner">
-            <form className="form" onSubmit={startGame}>
-              <div style={{fontWeight:700, marginRight:8}}>Wpisz imię i nazwisko gracza oraz płeć:</div>
+          <div className="top-blur form">
+            <div style={{fontWeight:700, marginRight:8}}>Wpisz imię i nazwisko gracza oraz płeć:</div>
+            <form onSubmit={startGame} className="form-fields">
               <input type="text" placeholder="Imię i nazwisko" value={name} onChange={e=>setName(e.target.value)} />
               <div className="gender">
                 <label><input type="radio" name="gender" value="K" checked={gender==='K'} onChange={e=>setGender(e.target.value)} /> Kobieta</label>
@@ -353,23 +344,21 @@ export default function App(){
               </div>
               <button className="btn" disabled={!name.trim()} type="submit">Losuj kartę</button>
             </form>
-
-            {qrStart && (
-              <div className="start-qr">
-                <img src={qrStart} alt="QR do uruchomienia na telefonie" />
-                <span className="small">Zeskanuj, aby otworzyć na telefonie</span>
-              </div>
-            )}
           </div>
+
+          {qrStart && (
+            <div className="start-qr">
+              <img src={qrStart} alt="QR do uruchomienia na telefonie" />
+              <span className="small">Zeskanuj, aby otworzyć na telefonie</span>
+            </div>
+          )}
         </div>
       )}
 
-   {step!=='start' && (
-  <div className={`table ${showOverlay ? 'is-overlay' : ''}`}>
-    <div className="table-surface" />
-    …
-
-
+      {/* STÓŁ */}
+      {step!=='start' && (
+        <div className={`table ${showOverlay ? 'veiled' : ''}`}>
+          <div className="table-surface" />
 
           {(step==='ability' || step==='done') && (
             <button className="hamburger" aria-label="Menu" onClick={()=>setMenuOpen(true)}>
@@ -381,7 +370,7 @@ export default function App(){
           {hero && (
             <div
               className={[
-                'card',
+                'card','hero-card',
                 focus==='left'?'focus':'',
                 (step==='hero' || zoom==='left') ? 'centered zoom' : 'at-left'
               ].join(' ')}
@@ -397,7 +386,7 @@ export default function App(){
                 <div className="role">Bohater{hero.sex==='K'?'ka':''}</div>
                 <div className="meta">
                   <div><b>Co robi?</b> {hero.what}</div>
-                  <div><b>Zdolność (pierwotna):</b> {heroDefaultNameOnly || '—'}</div>
+                  <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
                 </div>
                 <div className="action"><button type="button">{step==='hero' ? 'Odłóż kartę na stół' : (zoom==='left' ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
@@ -408,7 +397,7 @@ export default function App(){
           {monster && (
             <div
               className={[
-                'card',
+                'card','monster-card',
                 focus==='center'?'focus':'',
                 (step==='monster' || zoom==='center') ? 'centered zoom' : 'at-center'
               ].join(' ')}
@@ -423,7 +412,7 @@ export default function App(){
                 <div className="role">Potwór</div>
                 <div className="meta">
                   <div><b>Co robi?</b> {monster.what}</div>
-                  <div><b>Zdolność (pierwotna):</b> {monsterDefaultNameOnly || '—'}</div>
+                  <div><b>Zdolność:</b> {monsterDefaultNameOnly || '—'}</div>
                 </div>
                 <div className="action"><button type="button">{step==='monster' ? 'Odłóż kartę na stół' : (zoom==='center' ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
@@ -460,7 +449,9 @@ export default function App(){
           {showOverlay && (
             <div className="overlay" onClick={onOverlayClick}>
               <div className="smoke"></div>
-              {showAlert ? <div className="alert">Ludzie uważajcie!</div> : <div className="typewriter">{typing}<span className="cursor"></span></div>}
+              {showAlert
+                ? <div className="alert">Ludzie uważajcie!</div>
+                : <div className="typewriter">{typing}<span className="cursor"></span></div>}
             </div>
           )}
 
@@ -470,80 +461,35 @@ export default function App(){
         </div>
       )}
 
-     {/* MENU: galeria pierwotnych kart bohaterów */}
-{menuOpen && (
-  <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
-    <div className="menu-box" onClick={e=>e.stopPropagation()}>
-      <div className="menu-title">Karty bohaterów — pierwotne opisy</div>
-      <div className="menu-grid">
-        {CHARACTERS.map(h=>{
-          const a = getDefaultAbilityForHero(h);
-          return (
-            <div className="mini-card" key={h.id}>
-              <div className="mini-media">
-                <ImgSeq candidates={imageCandidates(h)} alt={h.name}/>
-              </div>
-              <div className="mini-body">
-                <div className="mini-name">{h.name}</div>
-                <div className="mini-line"><b>Co robi?</b> {h.what || '—'}</div>
-                <div className="mini-line"><b>Zdolność:</b> {a?.title || '—'}</div>
-                {a?.description && <div className="mini-desc">{a.description}</div>}
-              </div>
+      {/* MENU: galeria pierwotnych kart bohaterów */}
+      {menuOpen && (
+        <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
+          <div className="menu-box" onClick={e=>e.stopPropagation()}>
+            <div className="menu-title">Karty bohaterów — pierwotne opisy</div>
+            <div className="menu-grid">
+              {CHARACTERS.map(h=>{
+                const a = getDefaultAbilityForHero(h);
+                const nameOnly = a?.title ? (a.title.split('—')[1] || a.title).trim() : '';
+                return (
+                  <div className="mini-card" key={h.id}>
+                    <div className="mini-media"><ImgSeq candidates={imageCandidates(h)} alt={h.name}/></div>
+                    <div className="mini-body">
+                      <div className="mini-name">{h.name}</div>
+                      <div className="mini-line"><b>Co robi?</b> {h.what || '—'}</div>
+                      <div className="mini-line"><b>Zdolność:</b> {nameOnly || '—'}</div>
+                      <div className="mini-desc">{a?.description || ''}</div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          )
-        })}
-      </div>
-      <div style={{textAlign:'center', marginTop:12}}>
-        <button className="btn" onClick={()=>setMenuOpen(false)}>Zamknij</button>
-      </div>
-    </div>
-  </div>
-)}
+            <div style={{textAlign:'center', marginTop:12}}>
+              <button className="btn" onClick={()=>setMenuOpen(false)}>Zamknij</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
-
-  <div
-  className={[
-    'card', 'role-hero', 'good',
-    focus==='left'?'focus':'',
-    (step==='hero' || zoom==='left') ? 'centered zoom' : 'at-left'
-  ].join(' ')}
-  onClick={onHeroClick}
-  style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1200 : 800) }}
->
-  …
-  <div className="body ornament">
-    <div className="pretitle">Twoja postać to:</div>
-    <h3>{hero.name}</h3>
-    <div className="role">Bohater{hero.sex==='K'?'ka':''}</div>
-    <div className="meta">
-      <div><b>Co robi?</b> {hero.what}</div>
-      <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
-    </div>
-    …
-  </div>
-</div>
-
 }
-
-<div
-  className={[
-    'card', 'role-monster', 'monster',
-    focus==='center'?'focus':'',
-    (step==='monster' || zoom==='center') ? 'centered zoom' : 'at-center'
-  ].join(' ')}
-  onClick={onMonsterClick}
-  style={{ zIndex: (step==='monster' || zoom==='center') ? 9800 : (focus==='center' ? 1200 : 900) }}
->
-  …
-  <div className="body ornament">
-    <h3>{monster.name}</h3>
-    <div className="role">Potwór</div>
-    <div className="meta">
-      <div><b>Co robi?</b> {monster.what}</div>
-      <div><b>Zdolność:</b> {monsterDefaultNameOnly || '—'}</div>
-    </div>
-    …
-  </div>
-</div>
