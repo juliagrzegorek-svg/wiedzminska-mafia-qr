@@ -6,45 +6,74 @@ import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js';
 import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realtime.js';
 import './styles.css';
 
-/* SmartImg — jeden, pewny loader z fallbackami (w tym .png.png) */
+/* ========== TWARDY SPIS PLIKÓW – żeby iOS/Netlify nigdy się nie „mijał” ========== */
+const KNOWN_ASSETS = {
+  // bohaterowie
+  yennefer:  '/assets/yennefer.png',
+  ciri:      '/assets/ciri.png',
+  keira:     '/assets/keira.png',
+  filippa:   '/assets/filippa.png',
+  margarita: '/assets/margarita.png',
+  nenneke:   '/assets/nenneke.png',
+  triss:     '/assets/triss.png',
+  shani:     '/assets/shani.png',
+  fringilla: '/assets/fringilla.png',
+  geralt:    '/assets/geralt.png',
+  jaskier:   '/assets/jaskier.png',
+  zoltan:    '/assets/zoltan.png',
+  emhyr:     '/assets/emhyr.png',
+  vernon:    '/assets/vernon.png',
+  avallach:  '/assets/avallach.png',
+
+  // potwory (dla kart zdolności, gdy właścicielem jest potwór)
+  upior:     '/assets/monsters/upior.png',
+  strzyga:   '/assets/monsters/strzyga.png',
+  wilkolak:  '/assets/monsters/wilkolak.png',
+  wampir:    '/assets/monsters/wampir.png',
+  bruxa:     '/assets/monsters/bruxa.png',
+};
+
+/* ========== Loader obrazków z bardzo agresywnym fallbackiem ========== */
 function SmartImg({ src, id, name }) {
   const [i, setI] = useState(0);
-  const strip = (s) => (s || '').trim().replace(/\s+/g, ' ');
-  const deacc = (s) => strip(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const slug  = (s) => deacc(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  const rawName   = strip(name);
-  const nameNoAcc = deacc(name);
-  const slugName  = slug(name);
-  const first     = slugName.split('-')[0] || '';
 
+  // Pierwsze próby: podany src, znana ścieżka z mapy, a potem warianty z rozszerzeniami
   const bases = useMemo(() => {
-    const b = new Set();
-    if (src) b.add(src); // najpierw to, co podane w danych
-    const keys = Array.from(new Set([id, slugName, first, rawName, nameNoAcc].filter(Boolean)));
-    const dirs = ['/assets', '/assets/characters', '/characters', '/assets/monsters', '/monsters'];
-    dirs.forEach(d => keys.forEach(k => b.add(`${d}/${k}`)));
-    return Array.from(b);
-  }, [src, id, name]);
+    const b = [];
+    if (src) b.push(src);
+    if (KNOWN_ASSETS[id]) b.push(KNOWN_ASSETS[id]);
+    // heurystyki
+    b.push(`/assets/${id}`);
+    b.push(`/assets/characters/${id}`);
+    b.push(`/characters/${id}`);
+    return Array.from(new Set(b.filter(Boolean)));
+  }, [src, id]);
 
   const exts = ['.png', '.jpg', '.jpeg', '.webp', '.PNG', '.JPG', '.JPEG', '.WEBP', '.png.png'];
-
   const candidates = useMemo(() => {
     const out = [];
     for (const base of bases) {
       if (/\.(png|jpe?g|webp)(\.png)?$/i.test(base)) out.push(base);
       else exts.forEach(e => out.push(base + e));
     }
+    // debug: ?debug=img
     if (new URLSearchParams(location.search).get('debug') === 'img') {
-      console.debug('[SmartImg log]', out);
+      console.debug('[SmartImg]', id, out);
     }
     return out;
-  }, [bases]);
+  }, [bases, id]);
 
   const url = candidates[i];
-  return url
-    ? <img src={url} alt={name} onError={() => setI(v => v + 1)}
-           style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center' }} />
-    : <div style={{ width:'100%', height:'100%' }} />;
+  if (!url) return <div style={{width:'100%',height:'100%'}} />;
+
+  return (
+    <img
+      src={url}
+      alt={name}
+      onError={() => setI(v => v + 1)}
+      style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center' }}
+    />
+  );
 }
 
 /* ==== A P P ==== */
@@ -100,9 +129,6 @@ export default function App(){
   useEffect(()=>{ ability && localStorage.setItem(LS.ability, JSON.stringify(ability)) },[ability]);
 
   useEffect(()=>{ if(!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return ()=>un&&un() },[hostMode]);
-
-  // każda zmiana kroku — zamykamy powiększenia
-  useEffect(()=>{ setZoom(null); }, [step]);
 
   // QR na stronie startowej
   useEffect(() => {
@@ -175,6 +201,7 @@ export default function App(){
     }
   }
 
+  /* >>> To miesza zdolności po frakcjach (ZAWSZE losowo) */
   function triggerAlert(){
     setShowOverlay(true); setShowAlert(true);
     setTimeout(()=>{
@@ -188,14 +215,16 @@ export default function App(){
   }
   function onOverlayClick(){
     if(typing.length < fullText.length) return;
+
     if(hero && !ability){
-      const good = GOOD_ABILITIES.find(a => a.id === hero.abilityKey) || randItem(GOOD_ABILITIES);
-      setAbility({ ...good, ownerName: hero.name });
+      const randomGood = randItem(GOOD_ABILITIES);                 // ← losowa dobra
+      setAbility({ ...randomGood, ownerName: hero.name });
     }
     if(monster && !ability){
-      const ma = MONSTER_ABILITIES[Math.floor(Math.random()*MONSTER_ABILITIES.length)];
-      setAbility({ ...ma, ownerName: monster.name });
+      const randomMonster = randItem(MONSTER_ABILITIES);           // ← losowa potworna
+      setAbility({ ...randomMonster, ownerName: monster.name });
     }
+
     setShowOverlay(false); setStep('ability'); setFocus('right'); setAbilityOpen(true);
     setTimeout(publish, 0);
   }
@@ -219,17 +248,17 @@ export default function App(){
     setTimeout(publish, 0);
   }
 
-  const previewAbility = hero ? GOOD_ABILITIES.find(a=>a.id===hero.abilityKey) : null;
-  const showPreview = previewAbility && previewAbility.id !== 'citizen';
+  const previewAbility = null; // nie pokazujemy prawdziwej zdolności przed „dymem”
+  const showPreview = false;
 
   function newCode(){ localStorage.removeItem('game:code'); location.reload(); }
   async function copy(text){ try{ await navigator.clipboard.writeText(text) }catch{} }
   function openQR(c){ setQrBig({ name:c.name, data: qrMap[c.id], link: buildLinkFor(c) }) }
 
-  // obraz do karty ZDOLNOŚCI – portret właściciela
+  // obraz do karty ZDOLNOŚCI – portret właściciela (bohater / potwór)
   const abilityOwnerImg =
-    ability?.ownerName && monster?.name === ability.ownerName ? monster?.img
-    : ability?.ownerName && hero?.name === ability.ownerName ? hero?.img
+    ability?.ownerName && monster?.name === ability.ownerName ? KNOWN_ASSETS[monster.id] || monster?.img
+    : ability?.ownerName && hero?.name === ability.ownerName ? KNOWN_ASSETS[hero.id] || hero?.img
     : '/assets/ability.jpg';
 
   return (
@@ -323,18 +352,14 @@ export default function App(){
               style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1200 : 800) }}
             >
               <div className="media">
-                <SmartImg src={hero.img} id={hero.id} name={hero.name} />
+                <SmartImg src={hero.img || KNOWN_ASSETS[hero.id]} id={hero.id} name={hero.name} />
               </div>
               <div className="body">
                 <h3>{hero.name}</h3>
                 <div className="role">{hero.role}</div>
                 <div className="meta">
                   <div><b>Co robi?</b> {hero.what}</div>
-                  {step!=='hero' && showPreview && (
-                    <div className="small" style={{marginTop:6}}>
-                      <b>Zdolność:</b> {previewAbility.title.replace(/^.*—\s*/,'')} — {previewAbility.description}
-                    </div>
-                  )}
+                  {showPreview && <div className="small" style={{marginTop:6}}>(zdolność poznamy po dymie)</div>}
                 </div>
                 <div className="action"><button type="button">{step==='hero' ? 'Odłóż kartę na stół' : (zoom==='left' ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
@@ -353,7 +378,7 @@ export default function App(){
               style={{ zIndex: (step==='monster' || zoom==='center') ? 9800 : (focus==='center' ? 1200 : 900) }}
             >
               <div className="media">
-                <SmartImg src={monster.img} id={monster.id} name={monster.name} />
+                <SmartImg src={monster.img || KNOWN_ASSETS[monster.id]} id={monster.id} name={monster.name} />
               </div>
               <div className="body">
                 <h3>{monster.name}</h3>
@@ -364,7 +389,7 @@ export default function App(){
             </div>
           )}
 
-          {/* ZDOLNOŚĆ — z obrazem właściciela */}
+          {/* ZDOLNOŚĆ – obraz właściciela */}
           {ability && (
             <div
               className={[
@@ -375,7 +400,7 @@ export default function App(){
               style={{ zIndex: (step==='ability' || abilityOpen) ? 9800 : 1300 }}
             >
               <div className="media">
-                <SmartImg src={abilityOwnerImg} id="ability-owner" name="Zdolność" />
+                <SmartImg src={abilityOwnerImg} id={monster?.id || hero?.id || 'ability'} name="Zdolność" />
               </div>
               <div className="body">
                 <h3>{`Zdolność: ${ability.ownerName} — ${ability.title.replace(/^.*—\s*/,'')}`}</h3>
@@ -386,7 +411,7 @@ export default function App(){
             </div>
           )}
 
-          {/* OVERLAY (nad wszystkim) */}
+          {/* OVERLAY */}
           {showOverlay && (
             <div className="overlay" onClick={onOverlayClick}>
               <div className="smoke"></div>
