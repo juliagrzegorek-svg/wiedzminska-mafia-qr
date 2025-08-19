@@ -1,26 +1,76 @@
+// === POCZĄTEK pliku src/App.jsx ===
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { CHARACTERS } from './data/characters.js';
 import { MONSTERS } from './data/monsters.js';
-import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js';
+import { GOOD_ABILITIES } from './data/abilities.js';
 import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realtime.js';
 import './styles.css';
 
+/* =====================================================================================
+   SmartImg — „pancerny” loader obrazów:
+   - próbuje wielu ścieżek: /assets/<id>.(png|jpg|webp), /assets/characters/<id>… oraz slug nazwy
+===================================================================================== */
+function SmartImg({ src, id, name, style }) {
+  const [i, setI] = useState(0);
+
+  const strip = (s) => (s || '').trim().replace(/\s+/g, ' ');
+  const deacc = (s) => strip(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const slug  = (s) => deacc(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+  const nm      = strip(name || id || '');
+  const nmNo    = deacc(nm);
+  const slugNm  = slug(nm);
+  const first   = (slugNm.split('-')[0] || '').trim();
+
+  const exts = ['.png', '.jpg', '.jpeg', '.webp', '.PNG', '.JPG', '.JPEG', '.WEBP'];
+
+  const bases = useMemo(() => {
+    const arr = [];
+    if (src) arr.push(src.replace(/\/{2,}/g, '/'));
+    const keys = Array.from(new Set([id, slugNm, first, nm, nmNo].filter(Boolean)));
+    const dirs = ['/assets', '/assets/characters', '/characters', '/img'];
+    for (const d of dirs) for (const k of keys) arr.push(`${d}/${k}`);
+    return arr;
+  }, [src, id, name]);
+
+  const candidates = useMemo(() => {
+    const out = [];
+    for (const b of bases) {
+      if (/\.(png|jpe?g|webp)$/i.test(b)) out.push(b);
+      else exts.forEach(e => out.push(b + e));
+    }
+    return out;
+  }, [bases]);
+
+  const url = candidates[i];
+  if (!url) return null;
+
+  return (
+    <img
+      src={url}
+      alt={name || id}
+      onError={() => setI(v => v + 1)}
+      style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center', ...style }}
+    />
+  );
+}
+
+/* =================== UTILS / KONFIG =================== */
 const LS = {
   name:'player:name', gender:'player:gender',
   hero:'player:hero', monster:'player:monster', ability:'player:ability',
   step:'player:step'
 };
-
 const detectHost = () => {
   const u = new URL(window.location.href);
   return u.searchParams.get('host') === '1' || u.hash.replace('#','').includes('host');
 };
-
 const params = new URLSearchParams(location.search);
 const presetHeroId = params.get('pre') || null;
 
-export default function App(){
+/* =================== APP =================== */
+export default function App() {
   const [hostMode,setHostMode] = useState(detectHost());
   useEffect(()=>{ const onHash=()=>setHostMode(detectHost()); window.addEventListener('hashchange',onHash); return ()=>window.removeEventListener('hashchange',onHash) },[]);
 
@@ -52,11 +102,12 @@ export default function App(){
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name]);
   useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender]);
   useEffect(()=>{ localStorage.setItem(LS.step, step) },[step]);
-  useEffect(()=>{ hero && localStorage.setItem(LS.hero, JSON.stringify(hero)) },[hero]);
-  useEffect(()=>{ monster && localStorage.setItem(LS.monster, JSON.stringify(monster)) },[monster]);
-  useEffect(()=>{ ability && localStorage.setItem(LS.ability, JSON.stringify(ability)) },[ability]);
+  useEffect(()=>{ hero    ? localStorage.setItem(LS.hero, JSON.stringify(hero))       : localStorage.removeItem(LS.hero)    },[hero]);
+  useEffect(()=>{ monster ? localStorage.setItem(LS.monster, JSON.stringify(monster)) : localStorage.removeItem(LS.monster) },[monster]);
+  useEffect(()=>{ ability ? localStorage.setItem(LS.ability, JSON.stringify(ability)) : localStorage.removeItem(LS.ability) },[ability]);
   useEffect(()=>{ setZoom(null); },[step]);
 
+  // Host realtime
   useEffect(()=>{ if(!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return ()=>un&&un() },[hostMode]);
 
   // QR na stronie startowej
@@ -93,7 +144,7 @@ export default function App(){
       hero_id: hero?.id || null, hero_name: hero?.name || null,
       monster_id: monster?.id || null, monster_name: monster?.name || null,
       ability_id: ability?.id || null,
-      ability_title: ability ? (ability.ownerName + ' — ' + ability.title) : null,
+      ability_title: ability ? ((ability.ownerName || hero?.name || '') + ' — ' + ability.title) : null,
       updated_at: new Date().toISOString()
     });
   }
@@ -130,7 +181,7 @@ export default function App(){
     }
   }
 
-  // dym + pisanie
+  // Dym + pisanie
   function triggerAlert(){
     setShowOverlay(true); setShowAlert(true);
     setTimeout(()=>{
@@ -143,23 +194,18 @@ export default function App(){
     }, 4000);
   }
   function onOverlayClick(){
-  if(typing.length < fullText.length) return;
+    if(typing.length < fullText.length) return;
 
-  // Przydziel ZDOLNOŚĆ TYLKO BOHATEROWI (potworów NIE losujemy)
-  if(hero && !ability){
-    const randomGood = randItem(GOOD_ABILITIES);
-    setAbility({ ...randomGood, ownerName: hero.name });
-  }
+    // ZDOLNOŚĆ TYLKO DLA BOHATERA
+    if(hero && !ability){
+      const randomGood = randItem(GOOD_ABILITIES);
+      setAbility({ ...randomGood, ownerName: hero.name });
+    }
 
-  setShowOverlay(false);
-  setStep('ability');
-  setFocus('right');
-  setAbilityOpen(true);
-  setTimeout(publish, 0);
-}
-
-
-    setShowOverlay(false); setStep('ability'); setFocus('right'); setAbilityOpen(true);
+    setShowOverlay(false);
+    setStep('ability');
+    setFocus('right');
+    setAbilityOpen(true);
     setTimeout(publish, 0);
   }
 
@@ -172,7 +218,6 @@ export default function App(){
     }
   }
 
-  function togglePlaced(where){ setFocus(f=> f===where ? 'center' : where ) }
   function resetAll(){
     localStorage.removeItem(LS.hero);
     localStorage.removeItem(LS.monster);
@@ -193,19 +238,16 @@ export default function App(){
 
   return (
     <div className="app">
-
       {/* HOST */}
       {hostMode && (
         <div className="host">
           <div className="host-header">
             Panel Mistrza Gry — kod gry: {getGameCode()} {rtEnabled ? '' : '(realtime wyłączony)'}
           </div>
-
           <div className="host-actions">
             <button className="btn" onClick={()=>copy(`${location.origin}${location.pathname}?g=${getGameCode()}`)}>Kopiuj link do gry</button>
             <button className="btn" onClick={newCode}>Nowy kod gry</button>
           </div>
-
           <div className="host-list">
             <div className="row head">
               <div>Gracz</div><div>Bohater</div><div>Potwór</div><div>Zdolność</div><div>czas</div>
@@ -220,7 +262,6 @@ export default function App(){
               </div>
             ))}
           </div>
-
           <div style={{marginTop:8, fontWeight:700}}>QR bohaterów (kliknij aby powiększyć):</div>
           <div className="host-qr">
             {CHARACTERS.map(c=>(
@@ -260,7 +301,6 @@ export default function App(){
               <button className="btn" disabled={!name.trim()} type="submit">Losuj kartę</button>
             </form>
           </div>
-
           {qrStart && (
             <div className="start-qr">
               <img src={qrStart} alt="QR do uruchomienia na telefonie" />
@@ -270,7 +310,7 @@ export default function App(){
         </div>
       )}
 
-      {/* TABLE */}
+      {/* STÓŁ */}
       {step!=='start' && (
         <div className="table">
           <div className="table-surface" />
@@ -287,7 +327,7 @@ export default function App(){
               style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1200 : 800) }}
             >
               <div className="media">
-                <img src={hero.img} alt={hero.name} />
+                <SmartImg id={hero.id} name={hero.name} src={hero.img} />
               </div>
               <div className="body">
                 <h3>{hero.name}</h3>
@@ -310,7 +350,7 @@ export default function App(){
               style={{ zIndex: (step==='monster' || zoom==='center') ? 9800 : (focus==='center' ? 1200 : 900) }}
             >
               <div className="media">
-                <img src={monster.img} alt={monster.name} />
+                <SmartImg id={monster.id} name={monster.name} src={monster.img} />
               </div>
               <div className="body">
                 <h3>{monster.name}</h3>
@@ -332,7 +372,7 @@ export default function App(){
               style={{ zIndex: (step==='ability' || abilityOpen) ? 9800 : 1300 }}
             >
               <div className="media">
-                {abilityOwnerImg && <img src={abilityOwnerImg} alt="Zdolność" />}
+                <SmartImg id={hero?.id} name={hero?.name} src={abilityOwnerImg} />
               </div>
               <div className="body">
                 <h3>{`Zdolność: ${ability.ownerName} — ${ability.title.replace(/^.*—\s*/,'')}`}</h3>
@@ -361,3 +401,4 @@ export default function App(){
     </div>
   );
 }
+// === KONIEC pliku src/App.jsx ===
