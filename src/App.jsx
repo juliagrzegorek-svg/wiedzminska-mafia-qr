@@ -6,7 +6,7 @@ import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js';
 import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realtime.js';
 import './styles.css';
 
-/* SmartImg — jeden, pewny loader z fallbackami */
+/* SmartImg — jeden, pewny loader z fallbackami (w tym .png.png) */
 function SmartImg({ src, kind, id, name }) {
   const [i, setI] = useState(0);
   const strip = (s) => (s || '').trim().replace(/\s+/g, ' ');
@@ -19,22 +19,24 @@ function SmartImg({ src, kind, id, name }) {
 
   const bases = useMemo(() => {
     const b = new Set();
-    if (src) b.add(src); // najwyższy priorytet
+    if (src) b.add(src); // najpierw to, co podane w danych
     const keys = Array.from(new Set([id, slugName, first, rawName, nameNoAcc].filter(Boolean)));
-    const dirs = ['/assets/characters', '/assets', '/characters', '/assets/monsters', '/monsters'];
+    const dirs = ['/assets', '/assets/characters', '/characters', '/assets/monsters', '/monsters'];
     dirs.forEach(d => keys.forEach(k => b.add(`${d}/${k}`)));
     return Array.from(b);
   }, [src, id, name]);
 
-  const exts = ['.png', '.jpg', '.jpeg', '.webp', '.PNG', '.JPG', '.JPEG', '.WEBP'];
+  // dodany fallback '.png.png' (na wszelki wypadek)
+  const exts = ['.png', '.jpg', '.jpeg', '.webp', '.PNG', '.JPG', '.JPEG', '.WEBP', '.png.png'];
+
   const candidates = useMemo(() => {
     const out = [];
     for (const base of bases) {
-      if (/\.(png|jpe?g|webp)$/i.test(base)) out.push(base);
+      if (/\.(png|jpe?g|webp)(\.png)?$/i.test(base)) out.push(base);
       else exts.forEach(e => out.push(base + e));
     }
     if (new URLSearchParams(location.search).get('debug') === 'img') {
-      console.debug('[SmartImg] próby:', out);
+      console.debug('[SmartImg log]', out);
     }
     return out;
   }, [bases]);
@@ -81,7 +83,7 @@ export default function App(){
   const [players,setPlayers] = useState([]);
   const [qrMap,setQrMap] = useState({});
   const [qrBig,setQrBig] = useState(null);
-  const [qrStart,setQrStart] = useState(null); // QR na stronie startowej
+  const [qrStart,setQrStart] = useState(null);
 
   const fullText = 'W dzisiejszym jedzeniu został wykryty eliksir, który sprawił, że zdolności bohaterów pomieszały się. Czy Yen to Yen? Czy Emhyr wciąż może okazać łaskę?';
   const typingTimer = useRef(null);
@@ -216,6 +218,12 @@ export default function App(){
   async function copy(text){ try{ await navigator.clipboard.writeText(text) }catch{} }
   function openQR(c){ setQrBig({ name:c.name, data: qrMap[c.id], link: buildLinkFor(c) }) }
 
+  // >>> obraz do karty ZDOLNOŚCI – portret właściciela
+  const abilityOwnerImg =
+    ability?.ownerName && monster?.name === ability.ownerName ? monster?.img
+    : ability?.ownerName && hero?.name === ability.ownerName ? hero?.img
+    : '/assets/ability.jpg';
+
   return (
     <div className="app">
 
@@ -281,7 +289,6 @@ export default function App(){
             </form>
           </div>
 
-          {/* QR do otwarcia na telefonie */}
           {qrStart && (
             <div className="start-qr">
               <img src={qrStart} alt="QR do uruchomienia na telefonie" />
@@ -308,7 +315,7 @@ export default function App(){
               style={{ zIndex: step==='hero' ? 4500 : (focus==='left' ? 1200 : 800) }}
             >
               <div className="media">
-                <SmartImg src={hero.img} kind="characters" id={hero.id} name={hero.name} />
+                <SmartImg src={hero.img} id={hero.id} name={hero.name} />
               </div>
               <div className="body">
                 <h3>{hero.name}</h3>
@@ -338,7 +345,7 @@ export default function App(){
               style={{ zIndex: step==='monster' ? 4500 : (focus==='center' ? 1200 : 900) }}
             >
               <div className="media">
-                <SmartImg src={monster.img} kind="monsters" id={monster.id} name={monster.name} />
+                <SmartImg src={monster.img} id={monster.id} name={monster.name} />
               </div>
               <div className="body">
                 <h3>{monster.name}</h3>
@@ -349,7 +356,7 @@ export default function App(){
             </div>
           )}
 
-          {/* ZDOLNOŚĆ */}
+          {/* ZDOLNOŚĆ — z obrazem właściciela */}
           {ability && (step==='ability' || step==='done') && (
             <div
               className={[
@@ -360,7 +367,7 @@ export default function App(){
               style={{ zIndex: (step==='ability' || abilityOpen) ? 9500 : 1300 }}
             >
               <div className="media">
-                <img src="/assets/ability.jpg" alt="Zdolność" style={{width:'100%',height:'100%',objectFit:'contain'}}/>
+                <SmartImg src={abilityOwnerImg} id="ability-owner" name="Zdolność" />
               </div>
               <div className="body">
                 <h3>{`Zdolność: ${ability.ownerName} — ${ability.title.replace(/^.*—\s*/,'')}`}</h3>
