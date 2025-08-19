@@ -7,7 +7,7 @@ import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js';
 import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realtime.js';
 import './styles.css';
 
-/* ===== prosty loader obrazów z fallbackami (obsługuje /assets/heroes/ i /assets/monsters/) ===== */
+/* -------- obrazki z fallbackami (heroes/monsters/characters) -------- */
 function ImgSeq({ candidates, alt, style }) {
   const [i, setI] = useState(0);
   const list = Array.from(new Set((candidates || []).filter(Boolean)));
@@ -22,7 +22,6 @@ function ImgSeq({ candidates, alt, style }) {
     />
   );
 }
-
 function imageCandidates(item) {
   if (!item) return [];
   const id = (item.id || '').toLowerCase();
@@ -34,7 +33,6 @@ function imageCandidates(item) {
     `/assets/monsters/${id}`,
     `/assets/characters/${id}`,
   ].filter(Boolean);
-
   const out = [];
   for (const b of bases) {
     if (hasExt(b)) out.push(b);
@@ -43,7 +41,7 @@ function imageCandidates(item) {
   return out;
 }
 
-/* ===== localStorage klucze ===== */
+/* -------- localStorage -------- */
 const LS = { name:'player:name', gender:'player:gender', hero:'player:hero', monster:'player:monster', ability:'player:ability', step:'player:step' };
 const isHost = () => {
   const u = new URL(location.href);
@@ -52,36 +50,39 @@ const isHost = () => {
 const params = new URLSearchParams(location.search);
 const presetHeroId = params.get('pre') || null;
 
-/* ===== pomoc: wybór zdolności wg zasad ===== */
+/* -------- pomoc: domyślna zdolność bohatera i logika losowania -------- */
+function getDefaultAbilityForHero(hero){
+  if(!hero) return null;
+  // 1) perfect match jeśli abilities mają onlyFor
+  let a = GOOD_ABILITIES.find(x => Array.isArray(x.onlyFor) && x.onlyFor.includes(hero.id));
+  if (a) return a;
+  // 2) heurystyka po prefiksie id (np. geralt-seer)
+  a = GOOD_ABILITIES.find(x => (x.id || '').startsWith(hero.id + '-'));
+  return a || null;
+}
 function pickAbility({ hero, monster }) {
   const rand = (a) => a[Math.floor(Math.random() * a.length)];
-
-  // jeśli jest monster → tylko z puli potworów (i nie mieszamy między potworami)
   if (monster) {
     const pool = MONSTER_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(monster.id));
     const ability = rand(pool.length ? pool : MONSTER_ABILITIES);
     return { ...ability, ownerType: 'monster', ownerName: monster.name };
   }
-
-  // w przeciwnym razie → tylko dobra zdolność bohatera
   if (hero) {
     const pool = GOOD_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(hero.id));
     const ability = rand(pool.length ? pool : GOOD_ABILITIES);
     return { ...ability, ownerType: 'good', ownerName: hero.name };
   }
-
   return null;
 }
 
+/* --------- komponent --------- */
 export default function App(){
   const [hostMode,setHostMode] = useState(isHost());
   useEffect(()=>{ const h=()=>setHostMode(isHost()); addEventListener('hashchange',h); return ()=>removeEventListener('hashchange',h); },[]);
 
-  // start
   const [name,setName] = useState(localStorage.getItem(LS.name) || '');
   const [gender,setGender] = useState(localStorage.getItem(LS.gender) || 'K');
 
-  // gra
   const [hero,setHero]       = useState(()=> JSON.parse(localStorage.getItem(LS.hero)    || 'null'));
   const [monster,setMonster] = useState(()=> JSON.parse(localStorage.getItem(LS.monster) || 'null'));
   const [ability,setAbility] = useState(()=> JSON.parse(localStorage.getItem(LS.ability) || 'null'));
@@ -90,6 +91,9 @@ export default function App(){
   const [abilityOpen,setAbilityOpen] = useState(false);
   const [focus,setFocus] = useState('center');
   const [zoom,setZoom]   = useState(null);
+
+  // MENU (hamburger)
+  const [menuOpen,setMenuOpen] = useState(false);
 
   // host
   const [players,setPlayers] = useState([]);
@@ -107,7 +111,6 @@ export default function App(){
   const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, []);
   useEffect(()=>{ if(presetHero) setGender(presetHero.sex); },[presetHero]);
 
-  // persist
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name]);
   useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender]);
   useEffect(()=>{ localStorage.setItem(LS.step, step) },[step]);
@@ -119,7 +122,7 @@ export default function App(){
   // host realtime
   useEffect(()=>{ if(!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return ()=>un&&un() },[hostMode]);
 
-  // QR na start
+  // QR start
   useEffect(()=>{ (async()=>{ const link = `${location.origin}${location.pathname}?g=${getGameCode()}`; const data = await QRCode.toDataURL(link,{width:220,margin:1}); setQrStart(data); })().catch(()=>{}); },[]);
   function buildLinkFor(c){ return `${location.origin}${location.pathname}?g=${getGameCode()}&pre=${c.id}` }
   useEffect(()=>{ if(!hostMode) return; (async()=>{ const entries = await Promise.all(CHARACTERS.map(async c=>[c.id, await QRCode.toDataURL(buildLinkFor(c),{width:220,margin:1})])); setQrMap(Object.fromEntries(entries)); })().catch(()=>{}); },[hostMode]);
@@ -135,15 +138,15 @@ export default function App(){
       updated_at: new Date().toISOString()
     });
   }
-  const randItem = (a)=>a[Math.floor(Math.random()*a.length)];
 
+  const randItem = (a)=>a[Math.floor(Math.random()*a.length)];
   function startGame(e){
     e.preventDefault();
     if(!name.trim()) return;
     const drawn = presetHero || randItem(CHARACTERS.filter(c=>c.sex===gender));
     setHero(drawn); setStep('hero'); setFocus('center'); setAbilityOpen(false);
 
-    const giveMonster = Math.random() < 0.35; // szansa na potwora
+    const giveMonster = Math.random() < 0.35;
     if(giveMonster) setMonster(randItem(MONSTERS)); else setMonster(null);
 
     setTimeout(publish, 0);
@@ -198,9 +201,20 @@ export default function App(){
     setTimeout(publish, 0);
   }
 
-  // RENDER
+  // wyliczenia do widoku
   const abilityOwner = ability?.ownerType === 'monster' ? monster : hero;
   const abilityClass = ability?.ownerType === 'monster' ? 'monster' : 'good';
+  const abilityNameOnly = (() => {
+    if (!ability?.title) return '';
+    const parts = ability.title.split('—');
+    return (parts[1] || parts[0] || '').trim();
+  })();
+  const heroDefaultAbility = getDefaultAbilityForHero(hero);
+  const heroDefaultNameOnly = (() => {
+    if (!heroDefaultAbility?.title) return '';
+    const parts = heroDefaultAbility.title.split('—');
+    return (parts[1] || parts[0] || '').trim();
+  })();
 
   function newCode(){ localStorage.removeItem('game:code'); location.reload(); }
   async function copy(t){ try{ await navigator.clipboard.writeText(t) }catch{} }
@@ -276,6 +290,7 @@ export default function App(){
             </form>
           </div>
 
+          {/* QR do startu z telefonu */}
           {qrStart && (
             <div className="start-qr">
               <img src={qrStart} alt="QR do uruchomienia na telefonie" />
@@ -289,6 +304,13 @@ export default function App(){
       {step!=='start' && (
         <div className="table">
           <div className="table-surface" />
+
+          {/* HAMBURGER – widoczny od momentu karty zdolności */}
+          {(step==='ability' || step==='done') && (
+            <button className="hamburger" aria-label="Menu" onClick={()=>setMenuOpen(true)}>
+              <span></span><span></span><span></span>
+            </button>
+          )}
 
           {/* BOHATER */}
           {hero && (
@@ -307,7 +329,10 @@ export default function App(){
               <div className="body ornament">
                 <h3>{hero.name}</h3>
                 <div className="role">Bohater{hero.sex==='K'?'ka':''}</div>
-                <div className="meta"><div><b>Co robi?</b> {hero.what}</div></div>
+                <div className="meta">
+                  <div><b>Co robi?</b> {hero.what}</div>
+                  <div><b>Zdolność (pierwotna):</b> {heroDefaultNameOnly || '—'}</div>
+                </div>
                 <div className="action"><button type="button">{step==='hero' ? 'Odłóż kartę na stół' : (zoom==='left' ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
             </div>
@@ -351,9 +376,13 @@ export default function App(){
                 <ImgSeq candidates={imageCandidates(abilityOwner)} alt={abilityOwner?.name} />
               </div>
               <div className="body ornament">
-                <h3>{`Zdolność: ${ability.ownerName} — ${ability.title.replace(/^.*—\s*/,'')}`}</h3>
+                {/* tytuł + wymagane linie */}
+                <h3>{`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</h3>
                 <div className="role">Karta zdolności</div>
-                <div className="meta"><p>{ability.description}</p></div>
+                <div className="meta">
+                  <p><b>Twoja aktualna zdolność:</b> {`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</p>
+                  <p>{ability.description}</p>
+                </div>
                 <div className="action"><button type="button">{step==='ability' ? 'Odłóż kartę na stół' : (abilityOpen ? 'Schowaj' : 'Pokaż')}</button></div>
               </div>
             </div>
@@ -372,6 +401,34 @@ export default function App(){
           </div>
         </div>
       )}
+
+      {/* MENU: galeria pierwotnych kart bohaterów */}
+      {menuOpen && (
+        <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
+          <div className="menu-box" onClick={e=>e.stopPropagation()}>
+            <div className="menu-title">Karty bohaterów — pierwotne zdolności</div>
+            <div className="menu-grid">
+              {CHARACTERS.map(h=>{
+                const a = getDefaultAbilityForHero(h);
+                const nameOnly = a?.title ? (a.title.split('—')[1] || a.title).trim() : '';
+                return (
+                  <div className="mini-card" key={h.id}>
+                    <div className="mini-media"><ImgSeq candidates={imageCandidates(h)} alt={h.name}/></div>
+                    <div className="mini-body">
+                      <div className="mini-name">{h.name}</div>
+                      <div className="mini-ability"><b>Zdolność:</b> {nameOnly || '—'}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{textAlign:'center', marginTop:12}}>
+              <button className="btn" onClick={()=>setMenuOpen(false)}>Zamknij</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
