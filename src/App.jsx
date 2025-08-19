@@ -349,10 +349,12 @@ export default function App(){
         </div>
       )}
 
-      {/* STÓŁ */}
-      {step!=='start' && (
-        <div className="table">
-          <div className="table-surface" />
+     {/* STÓŁ */}
+{step!=='start' && (
+  <div className={`table ${showOverlay ? 'is-overlay' : ''}`}>
+    <div className="table-surface" />
+    …
+
 
           {(step==='ability' || step==='done') && (
             <button className="hamburger" aria-label="Menu" onClick={()=>setMenuOpen(true)}>
@@ -453,33 +455,35 @@ export default function App(){
         </div>
       )}
 
-      {/* MENU: galeria pierwotnych kart bohaterów */}
-      {menuOpen && (
-        <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
-          <div className="menu-box" onClick={e=>e.stopPropagation()}>
-            <div className="menu-title">Karty bohaterów — pierwotne opisy</div>
-            <div className="menu-grid">
-              {CHARACTERS.map(h=>{
-                const a = getDefaultAbilityForHero(h);
-                const nameOnly = a?.title ? (a.title.split('—')[1] || a.title).trim() : '';
-                return (
-                  <div className="mini-card" key={h.id}>
-                    <div className="mini-media"><ImgSeq candidates={imageCandidates(h)} alt={h.name}/></div>
-                    <div className="mini-body">
-                      <div className="mini-name">{h.name}</div>
-                      <div className="mini-line"><b>Co robi?</b> {h.what || '—'}</div>
-                      <div className="mini-line"><b>Zdolność:</b> {nameOnly || '—'}</div>
-                    </div>
-                  </div>
-                )
-              })}
+     {/* MENU: galeria pierwotnych kart bohaterów */}
+{menuOpen && (
+  <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
+    <div className="menu-box" onClick={e=>e.stopPropagation()}>
+      <div className="menu-title">Karty bohaterów — pierwotne opisy</div>
+      <div className="menu-grid">
+        {CHARACTERS.map(h=>{
+          const a = getDefaultAbilityForHero(h);
+          return (
+            <div className="mini-card" key={h.id}>
+              <div className="mini-media">
+                <ImgSeq candidates={imageCandidates(h)} alt={h.name}/>
+              </div>
+              <div className="mini-body">
+                <div className="mini-name">{h.name}</div>
+                <div className="mini-line"><b>Co robi?</b> {h.what || '—'}</div>
+                <div className="mini-line"><b>Zdolność:</b> {a?.title || '—'}</div>
+                {a?.description && <div className="mini-desc">{a.description}</div>}
+              </div>
             </div>
-            <div style={{textAlign:'center', marginTop:12}}>
-              <button className="btn" onClick={()=>setMenuOpen(false)}>Zamknij</button>
-            </div>
-          </div>
-        </div>
-      )}
+          )
+        })}
+      </div>
+      <div style={{textAlign:'center', marginTop:12}}>
+        <button className="btn" onClick={()=>setMenuOpen(false)}>Zamknij</button>
+      </div>
+    </div>
+  </div>
+)}
 
     </div>
   );
