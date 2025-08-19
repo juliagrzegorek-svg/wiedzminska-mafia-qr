@@ -50,7 +50,7 @@ const isHost = () => {
 const params = new URLSearchParams(location.search);
 const presetHeroId = params.get('pre') || null;
 
-/* ---------- domyślna zdolność bohatera + losowanie ---------- */
+/* ---------- domyślna zdolność bohatera + potwora ---------- */
 function getDefaultAbilityForHero(hero){
   if(!hero) return null;
   let a = GOOD_ABILITIES.find(x => Array.isArray(x.onlyFor) && x.onlyFor.includes(hero.id));
@@ -58,17 +58,47 @@ function getDefaultAbilityForHero(hero){
   a = GOOD_ABILITIES.find(x => (x.id || '').startsWith(hero.id + '-'));
   return a || null;
 }
+function getDefaultAbilityForMonster(monster){
+  if(!monster) return null;
+  // standardowo w danych potwór ma baseAbilityId
+  const id = monster.baseAbilityId;
+  if (!id) return null;
+  return MONSTER_ABILITIES.find(a => a.id === id) || null;
+}
+
+/* ---------- ustalenie właściciela danej zdolności (do portretu i podpisu) ---------- */
+function resolveOwnerOfAbility(abilityId){
+  if(!abilityId) return null;
+  // najpierw sprawdź bohaterów po ich domyślnej mocy
+  const ownerHero = CHARACTERS.find(h => getDefaultAbilityForHero(h)?.id === abilityId);
+  if (ownerHero) return { type:'hero', obj: ownerHero };
+
+  // potem potwory po ich bazowej mocy
+  const ownerMonster = MONSTERS.find(m => getDefaultAbilityForMonster(m)?.id === abilityId);
+  if (ownerMonster) return { type:'monster', obj: ownerMonster };
+
+  return null;
+}
+
+/* ---------- losowanie zdolności (bez mieszania potworów) ---------- */
 function pickAbility({ hero, monster }) {
-  const rand = (a) => a[Math.floor(Math.random() * a.length)];
+  // POTWÓR: nigdy nie mieszamy – bierzemy jego bazową zdolność
   if (monster) {
-    const pool = MONSTER_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(monster.id));
-    const ability = rand(pool.length ? pool : MONSTER_ABILITIES);
-    return { ...ability, ownerType: 'monster', ownerName: monster.name };
+    const base = getDefaultAbilityForMonster(monster);
+    if (!base) return null;
+    return { ...base, ownerType: 'monster', ownerName: monster.name };
   }
+  // BOHATER: losujemy z puli „good”
   if (hero) {
     const pool = GOOD_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(hero.id));
-    const ability = rand(pool.length ? pool : GOOD_ABILITIES);
-    return { ...ability, ownerType: 'good', ownerName: hero.name };
+    const list = (pool.length ? pool : GOOD_ABILITIES);
+    const ability = list[Math.floor(Math.random() * list.length)];
+
+    // właściciel tej zdolności (np. Ciri dla „Jasnowidzka”)
+    const owner = resolveOwnerOfAbility(ability.id);
+    const ownerName = owner?.obj?.name || hero.name;
+
+    return { ...ability, ownerType: 'good', ownerName };
   }
   return null;
 }
@@ -131,7 +161,7 @@ export default function App(){
       hero_id: hero?.id || null, hero_name: hero?.name || null,
       monster_id: monster?.id || null, monster_name: monster?.name || null,
       ability_id: ability?.id || null,
-      ability_title: ability ? (`${ability.ownerName} — ${ability.title}`) : null,
+      ability_title: ability ? (`${ability.ownerName} — ${ability.title?.split('—')?.[1]?.trim() || ability.title}`) : null,
       ability_side: ability?.ownerType || null,
       updated_at: new Date().toISOString()
     });
@@ -200,17 +230,32 @@ export default function App(){
   }
 
   // wyliczenia do widoku
-  const abilityOwner = ability?.ownerType === 'monster' ? monster : hero;
+  // Właściciel (portret) = faktyczny twórca zdolności (nie odbiorca!)
+  const abilityPortrait = useMemo(()=>{
+    if(!ability?.id) return null;
+    const owner = resolveOwnerOfAbility(ability.id);
+    return owner?.obj || null;
+  }, [ability]);
+
   const abilityClass = ability?.ownerType === 'monster' ? 'monster' : 'good';
+
   const abilityNameOnly = (() => {
     if (!ability?.title) return '';
     const parts = ability.title.split('—');
     return (parts[1] || parts[0] || '').trim();
   })();
+
   const heroDefaultAbility = getDefaultAbilityForHero(hero);
   const heroDefaultNameOnly = (() => {
     if (!heroDefaultAbility?.title) return '';
     const parts = heroDefaultAbility.title.split('—');
+    return (parts[1] || parts[0] || '').trim();
+  })();
+
+  const monsterDefaultAbility = getDefaultAbilityForMonster(monster);
+  const monsterDefaultNameOnly = (() => {
+    if (!monsterDefaultAbility?.title) return '';
+    const parts = monsterDefaultAbility.title.split('—');
     return (parts[1] || parts[0] || '').trim();
   })();
 
@@ -353,7 +398,10 @@ export default function App(){
               <div className="body ornament">
                 <h3>{monster.name}</h3>
                 <div className="role">Potwór</div>
-                <div className="meta"><div><b>Co robi?</b> {monster.what}</div></div>
+                <div className="meta">
+                  <div><b>Co robi?</b> {monster.what}</div>
+                  <div><b>Zdolność (pierwotna):</b> {monsterDefaultNameOnly || '—'}</div>
+                </div>
                 <div className="action"><button type="button">{step==='monster' ? 'Odłóż kartę na stół' : (zoom==='center' ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
             </div>
@@ -371,7 +419,7 @@ export default function App(){
               style={{ zIndex: (step==='ability' || abilityOpen) ? 9800 : 1300 }}
             >
               <div className="media">
-                <ImgSeq candidates={imageCandidates(abilityOwner)} alt={abilityOwner?.name} />
+                <ImgSeq candidates={imageCandidates(abilityPortrait)} alt={abilityPortrait?.name} />
               </div>
               <div className="body ornament">
                 <h3>{`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</h3>
