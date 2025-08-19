@@ -7,7 +7,7 @@ import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realti
 import './styles.css';
 
 /* SmartImg — jeden, pewny loader z fallbackami (w tym .png.png) */
-function SmartImg({ src, kind, id, name }) {
+function SmartImg({ src, id, name }) {
   const [i, setI] = useState(0);
   const strip = (s) => (s || '').trim().replace(/\s+/g, ' ');
   const deacc = (s) => strip(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -26,7 +26,6 @@ function SmartImg({ src, kind, id, name }) {
     return Array.from(b);
   }, [src, id, name]);
 
-  // dodany fallback '.png.png' (na wszelki wypadek)
   const exts = ['.png', '.jpg', '.jpeg', '.webp', '.PNG', '.JPG', '.JPEG', '.WEBP', '.png.png'];
 
   const candidates = useMemo(() => {
@@ -76,6 +75,8 @@ export default function App(){
   const [abilityOpen,setAbilityOpen] = useState(false);
 
   const [focus,setFocus] = useState('center');
+  const [zoom,setZoom]   = useState(null); // 'left' | 'center' | 'right' | null
+
   const [showOverlay,setShowOverlay] = useState(false);
   const [showAlert,setShowAlert] = useState(false);
   const [typing,setTyping] = useState('');
@@ -99,6 +100,9 @@ export default function App(){
   useEffect(()=>{ ability && localStorage.setItem(LS.ability, JSON.stringify(ability)) },[ability]);
 
   useEffect(()=>{ if(!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return ()=>un&&un() },[hostMode]);
+
+  // każda zmiana kroku — zamykamy powiększenia
+  useEffect(()=>{ setZoom(null); }, [step]);
 
   // QR na stronie startowej
   useEffect(() => {
@@ -157,6 +161,8 @@ export default function App(){
       if(monster) setTimeout(()=>{ setStep('monster'); setFocus('center') }, 450);
       else setTimeout(()=> triggerAlert(), 400);
       setTimeout(publish, 0);
+    } else {
+      setZoom(z => z==='left' ? null : 'left');
     }
   }
   function onMonsterClick(){
@@ -164,6 +170,8 @@ export default function App(){
       setStep('monster-placed'); setFocus('center');
       setTimeout(()=> triggerAlert(), 400);
       setTimeout(publish, 0);
+    } else {
+      setZoom(z => z==='center' ? null : 'center');
     }
   }
 
@@ -196,7 +204,7 @@ export default function App(){
     if(step==='ability'){
       setStep('done'); setAbilityOpen(false); setFocus('right');
       setTimeout(publish, 0);
-    } else if(step==='done'){
+    } else {
       setAbilityOpen(v=>!v);
     }
   }
@@ -218,7 +226,7 @@ export default function App(){
   async function copy(text){ try{ await navigator.clipboard.writeText(text) }catch{} }
   function openQR(c){ setQrBig({ name:c.name, data: qrMap[c.id], link: buildLinkFor(c) }) }
 
-  // >>> obraz do karty ZDOLNOŚCI – portret właściciela
+  // obraz do karty ZDOLNOŚCI – portret właściciela
   const abilityOwnerImg =
     ability?.ownerName && monster?.name === ability.ownerName ? monster?.img
     : ability?.ownerName && hero?.name === ability.ownerName ? hero?.img
@@ -304,15 +312,15 @@ export default function App(){
           <div className="table-surface" />
 
           {/* BOHATER */}
-          {hero && (step==='hero' || step==='hero-placed' || step==='monster' || step==='monster-placed' || step==='ability' || step==='done') && (
+          {hero && (
             <div
               className={[
                 'card',
                 focus==='left'?'focus':'',
-                step==='hero' ? 'centered zoom' : 'at-left'
+                (step==='hero' || zoom==='left') ? 'centered zoom' : 'at-left'
               ].join(' ')}
-              onClick={step==='hero' ? onHeroClick : ()=>togglePlaced('left')}
-              style={{ zIndex: step==='hero' ? 4500 : (focus==='left' ? 1200 : 800) }}
+              onClick={onHeroClick}
+              style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1200 : 800) }}
             >
               <div className="media">
                 <SmartImg src={hero.img} id={hero.id} name={hero.name} />
@@ -322,27 +330,27 @@ export default function App(){
                 <div className="role">{hero.role}</div>
                 <div className="meta">
                   <div><b>Co robi?</b> {hero.what}</div>
-                  {showPreview && (
+                  {step!=='hero' && showPreview && (
                     <div className="small" style={{marginTop:6}}>
                       <b>Zdolność:</b> {previewAbility.title.replace(/^.*—\s*/,'')} — {previewAbility.description}
                     </div>
                   )}
                 </div>
-                <div className="action"><button type="button">{step==='hero' ? 'Odłóż kartę na stół' : 'Powiększ/Schowaj'}</button></div>
+                <div className="action"><button type="button">{step==='hero' ? 'Odłóż kartę na stół' : (zoom==='left' ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
             </div>
           )}
 
           {/* POTWÓR */}
-          {monster && (step==='monster' || step==='monster-placed' || step==='ability' || step==='done') && (
+          {monster && (
             <div
               className={[
                 'card',
                 focus==='center'?'focus':'',
-                step==='monster' ? 'centered zoom' : 'at-center'
+                (step==='monster' || zoom==='center') ? 'centered zoom' : 'at-center'
               ].join(' ')}
-              onClick={step==='monster' ? onMonsterClick : ()=>togglePlaced('center')}
-              style={{ zIndex: step==='monster' ? 4500 : (focus==='center' ? 1200 : 900) }}
+              onClick={onMonsterClick}
+              style={{ zIndex: (step==='monster' || zoom==='center') ? 9800 : (focus==='center' ? 1200 : 900) }}
             >
               <div className="media">
                 <SmartImg src={monster.img} id={monster.id} name={monster.name} />
@@ -351,20 +359,20 @@ export default function App(){
                 <h3>{monster.name}</h3>
                 <div className="role">Potwór</div>
                 <div className="meta"><div><b>Co robi?</b> {monster.what}</div></div>
-                <div className="action"><button type="button">{step==='monster' ? 'Odłóż kartę na stół' : 'Powiększ/Schowaj'}</button></div>
+                <div className="action"><button type="button">{step==='monster' ? 'Odłóż kartę na stół' : (zoom==='center' ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
             </div>
           )}
 
           {/* ZDOLNOŚĆ — z obrazem właściciela */}
-          {ability && (step==='ability' || step==='done') && (
+          {ability && (
             <div
               className={[
                 'card','ability', focus==='right'?'focus':'',
                 (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right'
               ].join(' ')}
               onClick={onAbilityClick}
-              style={{ zIndex: (step==='ability' || abilityOpen) ? 9500 : 1300 }}
+              style={{ zIndex: (step==='ability' || abilityOpen) ? 9800 : 1300 }}
             >
               <div className="media">
                 <SmartImg src={abilityOwnerImg} id="ability-owner" name="Zdolność" />
