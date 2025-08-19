@@ -206,3 +206,34 @@ input[type="text"]{
 .tag.monster{ background:#ff9a9a }
 .muted{ color:var(--muted) }
 
+/* rozmiar kart i pewne miejsce na stopkę */
+.card{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%) scale(.88);
+  width:min(720px, 92vw);
+  height:min(82vh, 820px);
+  display:flex;
+  flex-direction:column;
+  border-radius:22px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow: var(--shadow);
+  background: linear-gradient(180deg, rgba(2,8,8,.8) 52%, rgba(6,20,20,.9) 100%);
+  transition: transform .45s cubic-bezier(.22,.9,.3,1), left .45s, right .45s;
+}
+
+/* ZAMIENNIK: „media” nie może zabrać miejsca stopce */
+.card .media{ flex:0 1 calc(100% - 170px); min-height:0; background:#0e1718; }
+.card .media img{ width:100%; height:100%; object-fit:contain; }
+
+/* stopka ma stałą wysokość – dzięki temu tekst nigdy nie wyjdzie poza kartę */
+.card .body{ flex:0 0 170px; padding:16px 18px 18px; background:linear-gradient(180deg, rgba(8,24,24,.96) 0%, rgba(4,12,12,.96) 100%); border-top:1px solid rgba(255,255,255,.08); }
+
+/* telefon – karta trochę mniejsza, większa stopka (czytelność) */
+@media (max-width: 480px){
+  .card{ width:92vw; height:78vh; transform:translateY(-50%) scale(.86); }
+  .card .media{ flex-basis:calc(100% - 200px); }
+  .card .body{ flex-basis:200px; padding:14px; }
+  .card .body h3{ font-size:24px; }
+}
