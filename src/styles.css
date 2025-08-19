@@ -209,3 +209,23 @@ input[type="text"]{
 .tag{ display:inline-block; width:10px; height:10px; border-radius:50%; background:#7ee5cf; margin-right:6px; vertical-align:middle }
 .tag.monster{ background:#ff9a9a }
 .muted{ color:var(--muted) }
+
+/* TŁO KARCZMY NA EKRANIE STARTOWYM */
+.start{
+  position:relative;
+  min-height:100vh;
+  overflow:hidden;
+}
+
+.start::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  /* identyczne tło jak na stole; daję dwie ścieżki (z / i bez /) na wszelki wypadek */
+  background:
+    radial-gradient(900px 420px at 50% 15%, rgba(18,61,61,.45) 0%, rgba(11,17,19,.8) 60%, rgba(8,12,13,.95) 100%),
+    url("/assets/bg-start.png") center / cover no-repeat,
+    url("assets/bg-start.png") center / cover no-repeat;
+  filter:saturate(90%);
+}
