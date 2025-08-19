@@ -50,7 +50,7 @@ const isHost = () => {
 const params = new URLSearchParams(location.search);
 const presetHeroId = params.get('pre') || null;
 
-/* ---------- domyślna zdolność bohatera + potwora ---------- */
+/* ---------- domyślne zdolności ---------- */
 function getDefaultAbilityForHero(hero){
   if(!hero) return null;
   let a = GOOD_ABILITIES.find(x => Array.isArray(x.onlyFor) && x.onlyFor.includes(hero.id));
@@ -60,44 +60,34 @@ function getDefaultAbilityForHero(hero){
 }
 function getDefaultAbilityForMonster(monster){
   if(!monster) return null;
-  // standardowo w danych potwór ma baseAbilityId
   const id = monster.baseAbilityId;
   if (!id) return null;
   return MONSTER_ABILITIES.find(a => a.id === id) || null;
 }
-
-/* ---------- ustalenie właściciela danej zdolności (do portretu i podpisu) ---------- */
 function resolveOwnerOfAbility(abilityId){
   if(!abilityId) return null;
-  // najpierw sprawdź bohaterów po ich domyślnej mocy
   const ownerHero = CHARACTERS.find(h => getDefaultAbilityForHero(h)?.id === abilityId);
   if (ownerHero) return { type:'hero', obj: ownerHero };
-
-  // potem potwory po ich bazowej mocy
   const ownerMonster = MONSTERS.find(m => getDefaultAbilityForMonster(m)?.id === abilityId);
   if (ownerMonster) return { type:'monster', obj: ownerMonster };
-
   return null;
 }
 
 /* ---------- losowanie zdolności (bez mieszania potworów) ---------- */
 function pickAbility({ hero, monster }) {
-  // POTWÓR: nigdy nie mieszamy – bierzemy jego bazową zdolność
+  // potwór: NIGDY nie mieszamy – bierzemy bazową
   if (monster) {
     const base = getDefaultAbilityForMonster(monster);
     if (!base) return null;
     return { ...base, ownerType: 'monster', ownerName: monster.name };
   }
-  // BOHATER: losujemy z puli „good”
+  // bohater: los z GOOD (ew. ograniczony onlyFor)
   if (hero) {
     const pool = GOOD_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(hero.id));
     const list = (pool.length ? pool : GOOD_ABILITIES);
     const ability = list[Math.floor(Math.random() * list.length)];
-
-    // właściciel tej zdolności (np. Ciri dla „Jasnowidzka”)
     const owner = resolveOwnerOfAbility(ability.id);
     const ownerName = owner?.obj?.name || hero.name;
-
     return { ...ability, ownerType: 'good', ownerName };
   }
   return null;
@@ -120,7 +110,6 @@ export default function App(){
   const [focus,setFocus] = useState('center');
   const [zoom,setZoom]   = useState(null);
 
-  // MENU (hamburger)
   const [menuOpen,setMenuOpen] = useState(false);
 
   // host
@@ -196,6 +185,17 @@ export default function App(){
     } else setZoom(z=>z==='center'?null:'center');
   }
 
+  // >>> po zakończeniu narracji (albo po kliknięciu) zawsze pokaż zdolność
+  function revealAbility() {
+    if (!ability) {
+      const picked = pickAbility({ hero, monster });
+      if (picked) setAbility(picked);
+    }
+    setShowOverlay(false);
+    setStep('ability'); setFocus('right'); setAbilityOpen(true);
+    setTimeout(publish, 0);
+  }
+
   function triggerAlert(){
     setShowOverlay(true); setShowAlert(true);
     setTimeout(()=>{
@@ -203,19 +203,14 @@ export default function App(){
       clearInterval(typingTimer.current);
       typingTimer.current = setInterval(()=>{
         i++; setTyping(fullText.slice(0,i));
-        if(i>=fullText.length) clearInterval(typingTimer.current);
+        if(i>=fullText.length) { clearInterval(typingTimer.current); setTimeout(revealAbility, 800); }
       }, 70);
     }, 4000);
   }
+
   function onOverlayClick(){
-    if(typing.length < fullText.length) return;
-    if(!ability){
-      const picked = pickAbility({ hero, monster });
-      if (picked) setAbility(picked);
-    }
-    setShowOverlay(false);
-    setStep('ability'); setFocus('right'); setAbilityOpen(true);
-    setTimeout(publish, 0);
+    // klik = skrót do końca
+    revealAbility();
   }
 
   function onAbilityClick(){
@@ -230,7 +225,6 @@ export default function App(){
   }
 
   // wyliczenia do widoku
-  // Właściciel (portret) = faktyczny twórca zdolności (nie odbiorca!)
   const abilityPortrait = useMemo(()=>{
     if(!ability?.id) return null;
     const owner = resolveOwnerOfAbility(ability.id);
@@ -321,7 +315,7 @@ export default function App(){
       {/* START */}
       {step==='start' && (
         <div className="start">
-          <div className="top-blur">
+          <div className="start-inner">
             <form className="form" onSubmit={startGame}>
               <div style={{fontWeight:700, marginRight:8}}>Wpisz imię i nazwisko gracza oraz płeć:</div>
               <input type="text" placeholder="Imię i nazwisko" value={name} onChange={e=>setName(e.target.value)} />
@@ -331,15 +325,14 @@ export default function App(){
               </div>
               <button className="btn" disabled={!name.trim()} type="submit">Losuj kartę</button>
             </form>
-          </div>
 
-          {/* QR do startu z telefonu */}
-          {qrStart && (
-            <div className="start-qr">
-              <img src={qrStart} alt="QR do uruchomienia na telefonie" />
-              <span className="small">Zeskanuj, aby otworzyć na telefonie</span>
-            </div>
-          )}
+            {qrStart && (
+              <div className="start-qr">
+                <img src={qrStart} alt="QR do uruchomienia na telefonie" />
+                <span className="small">Zeskanuj, aby otworzyć na telefonie</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
