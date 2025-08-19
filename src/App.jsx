@@ -1,4 +1,3 @@
-// src/App.jsx  — WERSJA STABILNA
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { CHARACTERS } from './data/characters.js';
@@ -7,14 +6,12 @@ import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js';
 import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realtime.js';
 import './styles.css';
 
-/* SmartImg — JEDYNA definicja */
+/* SmartImg — jeden, pewny loader z fallbackami */
 function SmartImg({ src, kind, id, name }) {
   const [i, setI] = useState(0);
-
   const strip = (s) => (s || '').trim().replace(/\s+/g, ' ');
   const deacc = (s) => strip(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const slug  = (s) => deacc(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-
   const rawName   = strip(name);
   const nameNoAcc = deacc(name);
   const slugName  = slug(name);
@@ -24,31 +21,32 @@ function SmartImg({ src, kind, id, name }) {
     const b = new Set();
     if (src) b.add(src); // najwyższy priorytet
     const keys = Array.from(new Set([id, slugName, first, rawName, nameNoAcc].filter(Boolean)));
-    const dirs = ['/assets/characters', '/assets', '/characters'];
+    const dirs = ['/assets/characters', '/assets', '/characters', '/assets/monsters', '/monsters'];
     dirs.forEach(d => keys.forEach(k => b.add(`${d}/${k}`)));
     return Array.from(b);
   }, [src, id, name]);
 
   const exts = ['.png', '.jpg', '.jpeg', '.webp', '.PNG', '.JPG', '.JPEG', '.WEBP'];
-
   const candidates = useMemo(() => {
     const out = [];
     for (const base of bases) {
       if (/\.(png|jpe?g|webp)$/i.test(base)) out.push(base);
       else exts.forEach(e => out.push(base + e));
     }
+    if (new URLSearchParams(location.search).get('debug') === 'img') {
+      console.debug('[SmartImg] próby:', out);
+    }
     return out;
   }, [bases]);
 
   const url = candidates[i];
-
   return url
     ? <img src={url} alt={name} onError={() => setI(v => v + 1)}
            style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center' }} />
     : <div style={{ width:'100%', height:'100%' }} />;
 }
 
-/* ==== A P P  ==== */
+/* ==== A P P ==== */
 const LS = {
   name: 'player:name', gender: 'player:gender',
   hero: 'player:hero', monster: 'player:monster', ability: 'player:ability',
@@ -83,6 +81,7 @@ export default function App(){
   const [players,setPlayers] = useState([]);
   const [qrMap,setQrMap] = useState({});
   const [qrBig,setQrBig] = useState(null);
+  const [qrStart,setQrStart] = useState(null); // QR na stronie startowej
 
   const fullText = 'W dzisiejszym jedzeniu został wykryty eliksir, który sprawił, że zdolności bohaterów pomieszały się. Czy Yen to Yen? Czy Emhyr wciąż może okazać łaskę?';
   const typingTimer = useRef(null);
@@ -98,6 +97,17 @@ export default function App(){
   useEffect(()=>{ ability && localStorage.setItem(LS.ability, JSON.stringify(ability)) },[ability]);
 
   useEffect(()=>{ if(!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return ()=>un&&un() },[hostMode]);
+
+  // QR na stronie startowej
+  useEffect(() => {
+    (async () => {
+      try {
+        const link = `${location.origin}${location.pathname}?g=${getGameCode()}`;
+        const data = await QRCode.toDataURL(link, { width: 220, margin: 1 });
+        setQrStart(data);
+      } catch(e) { console.error(e); }
+    })();
+  }, []);
 
   function buildLinkFor(c){
     const code = getGameCode();
@@ -202,7 +212,6 @@ export default function App(){
   const previewAbility = hero ? GOOD_ABILITIES.find(a=>a.id===hero.abilityKey) : null;
   const showPreview = previewAbility && previewAbility.id !== 'citizen';
 
-  /* HOST tools */
   function newCode(){ localStorage.removeItem('game:code'); location.reload(); }
   async function copy(text){ try{ await navigator.clipboard.writeText(text) }catch{} }
   function openQR(c){ setQrBig({ name:c.name, data: qrMap[c.id], link: buildLinkFor(c) }) }
@@ -271,6 +280,14 @@ export default function App(){
               <button className="btn" disabled={!name.trim()} type="submit">Losuj kartę</button>
             </form>
           </div>
+
+          {/* QR do otwarcia na telefonie */}
+          {qrStart && (
+            <div className="start-qr">
+              <img src={qrStart} alt="QR do uruchomienia na telefonie" />
+              <span className="small">Zeskanuj, aby otworzyć na telefonie</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -288,7 +305,7 @@ export default function App(){
                 step==='hero' ? 'centered zoom' : 'at-left'
               ].join(' ')}
               onClick={step==='hero' ? onHeroClick : ()=>togglePlaced('left')}
-              style={{ zIndex: focus==='left'? 40: 10 }}
+              style={{ zIndex: step==='hero' ? 4500 : (focus==='left' ? 1200 : 800) }}
             >
               <div className="media">
                 <SmartImg src={hero.img} kind="characters" id={hero.id} name={hero.name} />
@@ -318,7 +335,7 @@ export default function App(){
                 step==='monster' ? 'centered zoom' : 'at-center'
               ].join(' ')}
               onClick={step==='monster' ? onMonsterClick : ()=>togglePlaced('center')}
-              style={{ zIndex: focus==='center'? 40: 9 }}
+              style={{ zIndex: step==='monster' ? 4500 : (focus==='center' ? 1200 : 900) }}
             >
               <div className="media">
                 <SmartImg src={monster.img} kind="monsters" id={monster.id} name={monster.name} />
@@ -340,7 +357,7 @@ export default function App(){
                 (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right'
               ].join(' ')}
               onClick={onAbilityClick}
-              style={{ zIndex: 2000 }}
+              style={{ zIndex: (step==='ability' || abilityOpen) ? 9500 : 1300 }}
             >
               <div className="media">
                 <img src="/assets/ability.jpg" alt="Zdolność" style={{width:'100%',height:'100%',objectFit:'contain'}}/>
@@ -354,11 +371,13 @@ export default function App(){
             </div>
           )}
 
-          {/* OVERLAY */}
+          {/* OVERLAY (nad wszystkim) */}
           {showOverlay && (
             <div className="overlay" onClick={onOverlayClick}>
               <div className="smoke"></div>
-              {showAlert ? <div className="alert">Ludzie uważajcie!</div> : <div className="typewriter">{typing}<span className="cursor"></span></div>}
+              {showAlert
+                ? <div className="alert">Ludzie uważajcie!</div>
+                : <div className="typewriter">{typing}<span className="cursor"></span></div>}
             </div>
           )}
 
