@@ -237,3 +237,29 @@ input[type="text"]{
   .card .body{ flex-basis:200px; padding:14px; }
   .card .body h3{ font-size:24px; }
 }
+
+/* gdy overlay aktywny – przygaś karty i wyłącz interakcje */
+.table.is-overlay .card{
+  filter: blur(1px) brightness(.6);
+  pointer-events:none;
+}
+
+/* napis ostrzegawczy – wyłącz wielkie litery, zostaw normalny zapis */
+.alert{
+  text-transform:none;            /* <— to gasi CAPS */
+  letter-spacing:1.2px;
+}
+
+/* zwężam panel, żeby dało się kliknąć poza panel i zamknąć */
+.menu-overlay{ padding:24px; }               /* trochę „powietrza” wokół */
+.menu-box{ width:min(900px, 86vw); }         /* węższy box niż wcześniej */
+
+/* węższe kartki + opis zdolności */
+.menu-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); /* węższe */
+  gap:12px;
+}
+.mini-media{ height:150px; }                 /* była 180px */
+.mini-body{ padding:10px 12px; display:grid; gap:4px }
+.mini-desc{ font-size:13px; color:#cfe0db; opacity:.9; margin-top:4px; line-height:1.35 }
