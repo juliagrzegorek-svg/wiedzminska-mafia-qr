@@ -16,5 +16,5 @@ export const CHARACTERS = [
   { id:'zoltan',    name:'Zoltan',          sex:'M', role:'Bohater',   what:'Wojownik',       img:'/assets/characters/zoltan.png',    abilityKey:'zoltan-shield-village' },
   { id:'emhyr',     name:'Emhyr',           sex:'M', role:'Bohater',   what:'Cesarz',         img:'/assets/characters/emhyr.png',     abilityKey:'emhyr-pardon' },
   { id:'vernon',    name:'Vernon Roche',    sex:'M', role:'Bohater',   what:'Żołnierz',       img:'/assets/characters/vernon.png',    abilityKey:'citizen' },
-  { id:'avallach',  name:'Avallac’h',       sex:'M', role:'Bohater',   what:'Mędrzec',        img:'/assets/characters/avallach.png',  abilityKey:'citizen' },
+  { id:'avallach',  name:"Avallac’h",       sex:'M', role:'Bohater',   what:'Mędrzec',        img:'/assets/characters/avallach.png',  abilityKey:'citizen' },
 ];
