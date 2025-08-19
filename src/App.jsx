@@ -123,7 +123,12 @@ export default function App(){
   const [showAlert,setShowAlert] = useState(false);
   const [typing,setTyping] = useState('');
   const typingTimer = useRef(null);
-  const fullText = 'W dzisiejszym jedzeniu został wykryty eliksir, który sprawił, że zdolności bohaterów i potworów już się nie mieszają. Czy Yen to Yen? Czy Emhyr wciąż może okazać łaskę?';
+  const fullText =
+  'W dzisiejszym jedzeniu wykryto eliksir, po którym zdolności Waszych postaci wymieszały się. ' +
+  'Czy Yen dalej leczy a Emhyr jako sędzia uniewinni przed śmiercią? ' +
+  'Strzeżcie się Mrocznego Kręgu,  — szepczą, tną nici zaufania, sabotują. ' +
+  'Nie wierzcie nikomu. Nawet sobie.';
+
 
   const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, []);
   useEffect(()=>{ if(presetHero) setGender(presetHero.sex); },[presetHero]);
@@ -161,14 +166,10 @@ export default function App(){
   e.preventDefault();
   if(!name.trim()) return;
 
-  // 1) Pool wg płci; gdy pusty -> cała lista
-  const pool = CHARACTERS.filter(
-    c => (c.sex || '').toUpperCase() === (gender || '').toUpperCase()
-  );
-  const drawn = presetHero || (pool.length ? randItem(pool) : randItem(CHARACTERS));
-
-  // 2) Jeżeli z jakiegoś powodu nic nie wylosowało – nie wychodzimy ze startu
-  if (!drawn) return;
+  // twardy wybór zgodny z płcią
+  const pool = CHARACTERS.filter(c => c.sex === gender);
+  let drawn = presetHero || (pool.length ? randItem(pool) : randItem(CHARACTERS));
+  if (drawn && drawn.sex !== gender && pool.length) drawn = randItem(pool);
 
   setHero(drawn);
   setStep('hero');
@@ -176,10 +177,11 @@ export default function App(){
   setAbilityOpen(false);
 
   const giveMonster = Math.random() < 0.35;
-  setMonster(giveMonster ? randItem(MONSTERS) : null);
+  if (giveMonster) setMonster(randItem(MONSTERS)); else setMonster(null);
 
   setTimeout(publish, 0);
 }
+
 
 
   function onHeroClick(){
@@ -210,16 +212,29 @@ export default function App(){
   }
 
   function triggerAlert(){
-    setShowOverlay(true); setShowAlert(true);
-    setTimeout(()=>{
-      setShowAlert(false); setTyping(''); let i=0;
-      clearInterval(typingTimer.current);
-      typingTimer.current = setInterval(()=>{
-        i++; setTyping(fullText.slice(0,i));
-        if(i>=fullText.length) { clearInterval(typingTimer.current); setTimeout(revealAbility, 800); }
-      }, 70);
-    }, 4000);
-  }
+  // żadnych powiększeń podczas dymu
+  setZoom(null);
+  setAbilityOpen(false);
+
+  // jeśli ktoś nie stuknął w kartę – odłóżmy ją programowo
+  setStep(s => s === 'hero' ? 'hero-placed' : (s === 'monster' ? 'monster-placed' : s));
+
+  setShowOverlay(true);
+  setShowAlert(true);
+
+  setTimeout(()=>{
+    setShowAlert(false);
+    setTyping('');
+    let i = 0;
+    clearInterval(typingTimer.current);
+    typingTimer.current = setInterval(()=>{
+      i++;
+      setTyping(fullText.slice(0, i));
+      if(i >= fullText.length) clearInterval(typingTimer.current);
+    }, 70);
+  }, 4000);
+}
+
 
   function onOverlayClick(){
     // klik = skrót do końca
@@ -349,11 +364,11 @@ export default function App(){
         </div>
       )}
 
-     {/* STÓŁ */}
-{step!=='start' && (
+   {step!=='start' && (
   <div className={`table ${showOverlay ? 'is-overlay' : ''}`}>
     <div className="table-surface" />
     …
+
 
 
           {(step==='ability' || step==='done') && (
@@ -487,4 +502,48 @@ export default function App(){
 
     </div>
   );
+
+  <div
+  className={[
+    'card', 'role-hero', 'good',
+    focus==='left'?'focus':'',
+    (step==='hero' || zoom==='left') ? 'centered zoom' : 'at-left'
+  ].join(' ')}
+  onClick={onHeroClick}
+  style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1200 : 800) }}
+>
+  …
+  <div className="body ornament">
+    <div className="pretitle">Twoja postać to:</div>
+    <h3>{hero.name}</h3>
+    <div className="role">Bohater{hero.sex==='K'?'ka':''}</div>
+    <div className="meta">
+      <div><b>Co robi?</b> {hero.what}</div>
+      <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
+    </div>
+    …
+  </div>
+</div>
+
 }
+
+<div
+  className={[
+    'card', 'role-monster', 'monster',
+    focus==='center'?'focus':'',
+    (step==='monster' || zoom==='center') ? 'centered zoom' : 'at-center'
+  ].join(' ')}
+  onClick={onMonsterClick}
+  style={{ zIndex: (step==='monster' || zoom==='center') ? 9800 : (focus==='center' ? 1200 : 900) }}
+>
+  …
+  <div className="body ornament">
+    <h3>{monster.name}</h3>
+    <div className="role">Potwór</div>
+    <div className="meta">
+      <div><b>Co robi?</b> {monster.what}</div>
+      <div><b>Zdolność:</b> {monsterDefaultNameOnly || '—'}</div>
+    </div>
+    …
+  </div>
+</div>
