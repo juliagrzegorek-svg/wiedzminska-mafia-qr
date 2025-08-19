@@ -240,14 +240,30 @@ input[type="text"]{
 
 /* gdy overlay aktywny – przygaś karty i wyłącz interakcje */
 .table.is-overlay .card{
-  filter: blur(1px) brightness(.6);
-  pointer-events:none;
+  filter: blur(1px) brightness(.65);
+  pointer-events: none;
 }
 
-/* napis ostrzegawczy – wyłącz wielkie litery, zostaw normalny zapis */
+/* na wszelki wypadek zdejmij "zoom" w overlay, gdyby coś zostało */
+.table.is-overlay .card.centered,
+.table.is-overlay .card.zoom,
+.table.is-overlay .card.centered.zoom{
+  transform:translateY(-50%) scale(.88) !important;
+}
+
 .alert{
-  text-transform:none;            /* <— to gasi CAPS */
-  letter-spacing:1.2px;
+  text-transform:none;      /* bez CAPS */
+  font-size:56px;
+}
+.typewriter{
+  text-transform:none;
+}
+
+@media (max-width:480px){
+  .alert{ font-size:40px; }
+  .typewriter{ font-size:20px; }
+}
+
 }
 
 /* zwężam panel, żeby dało się kliknąć poza panel i zamknąć */
@@ -263,3 +279,32 @@ input[type="text"]{
 .mini-media{ height:150px; }                 /* była 180px */
 .mini-body{ padding:10px 12px; display:grid; gap:4px }
 .mini-desc{ font-size:13px; color:#cfe0db; opacity:.9; margin-top:4px; line-height:1.35 }
+
+/* stała, delikatna poświata */
+.role-hero.good{
+  box-shadow:
+    0 0 0 1px rgba(120, 210, 255, .18),
+    0 0 22px rgba(80, 190, 255, .18),
+    var(--shadow);
+}
+.role-monster.monster{
+  box-shadow:
+    0 0 0 1px rgba(255, 130, 130, .18),
+    0 0 22px rgba(255, 90, 90, .18),
+    var(--shadow);
+}
+
+/* kiedy karta jest „focus”, poświata nieco mocniejsza */
+.role-hero.good.focus{
+  box-shadow:
+    0 0 0 1px rgba(140, 230, 255, .28),
+    0 0 26px rgba(90, 210, 255, .26),
+    var(--shadow);
+}
+.role-monster.monster.focus{
+  box-shadow:
+    0 0 0 1px rgba(255, 150, 150, .28),
+    0 0 26px rgba(255, 110, 110, .26),
+    var(--shadow);
+}
+
