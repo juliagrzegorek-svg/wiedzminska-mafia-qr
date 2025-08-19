@@ -32,6 +32,46 @@ body{
 .btn{
   appearance:none; border:1px solid rgba(255,255,255,.12);
   background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.15));
+  /* --- upewnij się, że karty są zawsze ponad tłem --- */
+.app { position: relative; }
+
+/* stół ma własny izolowany kontekst – nic z zewnątrz go nie przykryje */
+.table {
+  position: relative;
+  isolation: isolate;     /* bardzo ważne na Safari/iOS */
+}
+
+/* tło stołu wyłącznie jako "tapeta" pod spodem */
+.table-surface {
+  position: fixed;
+  inset: 0;
+  z-index: -2;            /* poniżej wszystkiego */
+  pointer-events: none;   /* nie przechwytuje klików */
+}
+
+/* gdyby pseudo-element startu został w pamięci: też pod spód i bez klików */
+.start::before {
+  z-index: -2 !important;
+  pointer-events: none;
+}
+
+/* karty: nad tłem, z sensowną kolejnością */
+.card {
+  position: absolute;
+  z-index: 10;
+}
+
+/* karta w centrum/po zbliżeniu zawsze na wierzchu */
+.card.centered,
+.card.zoom,
+.card.centered.zoom {
+  z-index: 9999;
+}
+
+/* overlay/komunikaty i menu – jeszcze wyżej (dla pewności) */
+.overlay { z-index: 10010; }
+.menu-overlay { z-index: 10020; }
+
   color:var(--fg); padding:9px 14px; border-radius:12px;
   font-weight:600; cursor:pointer;
   transition:all .2s ease; backdrop-filter: blur(2px);
