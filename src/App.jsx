@@ -7,7 +7,7 @@ import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js';
 import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realtime.js';
 import './styles.css';
 
-/* -------- obrazki z fallbackami (heroes/monsters/characters) -------- */
+/* ---------- obrazki z fallbackami ---------- */
 function ImgSeq({ candidates, alt, style }) {
   const [i, setI] = useState(0);
   const list = Array.from(new Set((candidates || []).filter(Boolean)));
@@ -41,7 +41,7 @@ function imageCandidates(item) {
   return out;
 }
 
-/* -------- localStorage -------- */
+/* ---------- localStorage ---------- */
 const LS = { name:'player:name', gender:'player:gender', hero:'player:hero', monster:'player:monster', ability:'player:ability', step:'player:step' };
 const isHost = () => {
   const u = new URL(location.href);
@@ -50,13 +50,11 @@ const isHost = () => {
 const params = new URLSearchParams(location.search);
 const presetHeroId = params.get('pre') || null;
 
-/* -------- pomoc: domyślna zdolność bohatera i logika losowania -------- */
+/* ---------- domyślna zdolność bohatera + losowanie ---------- */
 function getDefaultAbilityForHero(hero){
   if(!hero) return null;
-  // 1) perfect match jeśli abilities mają onlyFor
   let a = GOOD_ABILITIES.find(x => Array.isArray(x.onlyFor) && x.onlyFor.includes(hero.id));
   if (a) return a;
-  // 2) heurystyka po prefiksie id (np. geralt-seer)
   a = GOOD_ABILITIES.find(x => (x.id || '').startsWith(hero.id + '-'));
   return a || null;
 }
@@ -75,7 +73,7 @@ function pickAbility({ hero, monster }) {
   return null;
 }
 
-/* --------- komponent --------- */
+/* ---------- komponent ---------- */
 export default function App(){
   const [hostMode,setHostMode] = useState(isHost());
   useEffect(()=>{ const h=()=>setHostMode(isHost()); addEventListener('hashchange',h); return ()=>removeEventListener('hashchange',h); },[]);
@@ -305,7 +303,6 @@ export default function App(){
         <div className="table">
           <div className="table-surface" />
 
-          {/* HAMBURGER – widoczny od momentu karty zdolności */}
           {(step==='ability' || step==='done') && (
             <button className="hamburger" aria-label="Menu" onClick={()=>setMenuOpen(true)}>
               <span></span><span></span><span></span>
@@ -327,6 +324,7 @@ export default function App(){
                 <ImgSeq candidates={imageCandidates(hero)} alt={hero.name} />
               </div>
               <div className="body ornament">
+                <div className="pretitle">Twoja postać to:</div>
                 <h3>{hero.name}</h3>
                 <div className="role">Bohater{hero.sex==='K'?'ka':''}</div>
                 <div className="meta">
@@ -376,7 +374,6 @@ export default function App(){
                 <ImgSeq candidates={imageCandidates(abilityOwner)} alt={abilityOwner?.name} />
               </div>
               <div className="body ornament">
-                {/* tytuł + wymagane linie */}
                 <h3>{`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</h3>
                 <div className="role">Karta zdolności</div>
                 <div className="meta">
@@ -406,7 +403,7 @@ export default function App(){
       {menuOpen && (
         <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
           <div className="menu-box" onClick={e=>e.stopPropagation()}>
-            <div className="menu-title">Karty bohaterów — pierwotne zdolności</div>
+            <div className="menu-title">Karty bohaterów — pierwotne opisy</div>
             <div className="menu-grid">
               {CHARACTERS.map(h=>{
                 const a = getDefaultAbilityForHero(h);
@@ -416,7 +413,8 @@ export default function App(){
                     <div className="mini-media"><ImgSeq candidates={imageCandidates(h)} alt={h.name}/></div>
                     <div className="mini-body">
                       <div className="mini-name">{h.name}</div>
-                      <div className="mini-ability"><b>Zdolność:</b> {nameOnly || '—'}</div>
+                      <div className="mini-line"><b>Co robi?</b> {h.what || '—'}</div>
+                      <div className="mini-line"><b>Zdolność:</b> {nameOnly || '—'}</div>
                     </div>
                   </div>
                 )
