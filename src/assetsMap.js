@@ -1,30 +1,26 @@
-// ===== Bohaterowie =====
-import yennefer  from './assets/characters/yennefer.png';
-import ciri      from './assets/characters/ciri.png';
-import keira     from './assets/characters/keira.png';
-import filippa   from './assets/characters/filippa.png';
-import margarita from './assets/characters/margarita.png';
-import nenneke   from './assets/characters/nenneke.png';
-import triss     from './assets/characters/triss.png';
-import shani     from './assets/characters/shani.png';
-import fringilla from './assets/characters/fringilla.png';
-import geralt    from './assets/characters/geralt.png';
-import jaskier   from './assets/characters/jaskier.png';
-import zoltan    from './assets/characters/zoltan.png';
-import emhyr     from './assets/characters/emhyr.png';
-import vernon    from './assets/characters/vernon.png';
-import avallach  from './assets/characters/avallach.png';
-
-// ===== Potwory =====
-import upior     from './assets/monsters/upior.png';
-import strzyga   from './assets/monsters/strzyga.png';
-import wilkolak  from './assets/monsters/wilkolak.png';
-import wampir    from './assets/monsters/wampir.png';
-import bruxa     from './assets/monsters/bruxa.png';
-
+// Używamy ścieżek z folderu public/, więc build nie musi rozwiązywać importów.
 export const CHAR_IMG = {
-  yennefer, ciri, keira, filippa, margarita, nenneke, triss, shani, fringilla,
-  geralt, jaskier, zoltan, emhyr, vernon, avallach
+  yennefer:  '/assets/characters/yennefer.png',
+  ciri:      '/assets/characters/ciri.png',
+  keira:     '/assets/characters/keira.png',
+  filippa:   '/assets/characters/filippa.png',
+  margarita: '/assets/characters/margarita.png',
+  nenneke:   '/assets/characters/nenneke.png',
+  triss:     '/assets/characters/triss.png',
+  shani:     '/assets/characters/shani.png',
+  fringilla: '/assets/characters/fringilla.png',
+  geralt:    '/assets/characters/geralt.png',
+  jaskier:   '/assets/characters/jaskier.png',
+  zoltan:    '/assets/characters/zoltan.png',
+  emhyr:     '/assets/characters/emhyr.png',
+  vernon:    '/assets/characters/vernon.png',
+  avallach:  '/assets/characters/avallach.png',
 };
 
-export const MONSTER_IMG = { upior, strzyga, wilkolak, wampir, bruxa };
+export const MONSTER_IMG = {
+  upior:     '/assets/monsters/upior.png',
+  strzyga:   '/assets/monsters/strzyga.png',
+  wilkolak:  '/assets/monsters/wilkolak.png',
+  wampir:    '/assets/monsters/wampir.png',
+  bruxa:     '/assets/monsters/bruxa.png',
+};
