@@ -158,16 +158,29 @@ export default function App(){
 
   const randItem = (a)=>a[Math.floor(Math.random()*a.length)];
   function startGame(e){
-    e.preventDefault();
-    if(!name.trim()) return;
-    const drawn = presetHero || randItem(CHARACTERS.filter(c=>c.sex===gender));
-    setHero(drawn); setStep('hero'); setFocus('center'); setAbilityOpen(false);
+  e.preventDefault();
+  if(!name.trim()) return;
 
-    const giveMonster = Math.random() < 0.35;
-    if(giveMonster) setMonster(randItem(MONSTERS)); else setMonster(null);
+  // 1) Pool wg płci; gdy pusty -> cała lista
+  const pool = CHARACTERS.filter(
+    c => (c.sex || '').toUpperCase() === (gender || '').toUpperCase()
+  );
+  const drawn = presetHero || (pool.length ? randItem(pool) : randItem(CHARACTERS));
 
-    setTimeout(publish, 0);
-  }
+  // 2) Jeżeli z jakiegoś powodu nic nie wylosowało – nie wychodzimy ze startu
+  if (!drawn) return;
+
+  setHero(drawn);
+  setStep('hero');
+  setFocus('center');
+  setAbilityOpen(false);
+
+  const giveMonster = Math.random() < 0.35;
+  setMonster(giveMonster ? randItem(MONSTERS) : null);
+
+  setTimeout(publish, 0);
+}
+
 
   function onHeroClick(){
     if(step==='hero'){
