@@ -143,17 +143,21 @@ export default function App(){
     }, 4000);
   }
   function onOverlayClick(){
-    if(typing.length < fullText.length) return;
+  if(typing.length < fullText.length) return;
 
-    // mieszanie zdolności (zgodnie z frakcją)
-    if(hero && !ability){
-      const randomGood = randItem(GOOD_ABILITIES);
-      setAbility({ ...randomGood, ownerName: hero.name });
-    }
-    if(monster && !ability){
-      const randomMonster = randItem(MONSTER_ABILITIES);
-      setAbility({ ...randomMonster, ownerName: monster.name });
-    }
+  // Przydziel ZDOLNOŚĆ TYLKO BOHATEROWI (potworów NIE losujemy)
+  if(hero && !ability){
+    const randomGood = randItem(GOOD_ABILITIES);
+    setAbility({ ...randomGood, ownerName: hero.name });
+  }
+
+  setShowOverlay(false);
+  setStep('ability');
+  setFocus('right');
+  setAbilityOpen(true);
+  setTimeout(publish, 0);
+}
+
 
     setShowOverlay(false); setStep('ability'); setFocus('right'); setAbilityOpen(true);
     setTimeout(publish, 0);
