@@ -1,22 +1,23 @@
-// Używamy ścieżek z folderu public/, więc build nie musi rozwiązywać importów.
+// BOHATEROWIE – pliki w public/assets/<id>.png
 export const CHAR_IMG = {
-  yennefer:  '/assets/characters/yennefer.png',
-  ciri:      '/assets/characters/ciri.png',
-  keira:     '/assets/characters/keira.png',
-  filippa:   '/assets/characters/filippa.png',
-  margarita: '/assets/characters/margarita.png',
-  nenneke:   '/assets/characters/nenneke.png',
-  triss:     '/assets/characters/triss.png',
-  shani:     '/assets/characters/shani.png',
-  fringilla: '/assets/characters/fringilla.png',
-  geralt:    '/assets/characters/geralt.png',
-  jaskier:   '/assets/characters/jaskier.png',
-  zoltan:    '/assets/characters/zoltan.png',
-  emhyr:     '/assets/characters/emhyr.png',
-  vernon:    '/assets/characters/vernon.png',
-  avallach:  '/assets/characters/avallach.png',
+  yennefer:  '/assets/yennefer.png',
+  ciri:      '/assets/ciri.png',
+  keira:     '/assets/keira.png',
+  filippa:   '/assets/filippa.png',
+  margarita: '/assets/margarita.png',
+  nenneke:   '/assets/nenneke.png',
+  triss:     '/assets/triss.png',
+  shani:     '/assets/shani.png',
+  fringilla: '/assets/fringilla.png',
+  geralt:    '/assets/geralt.png',
+  jaskier:   '/assets/jaskier.png',
+  zoltan:    '/assets/zoltan.png',
+  emhyr:     '/assets/emhyr.png',
+  vernon:    '/assets/vernon.png',
+  avallach:  '/assets/avallach.png',
 };
 
+// POTWORY – w public/assets/monsters/<id>.png
 export const MONSTER_IMG = {
   upior:     '/assets/monsters/upior.png',
   strzyga:   '/assets/monsters/strzyga.png',
