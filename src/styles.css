@@ -160,3 +160,51 @@ body { font-family: "Cormorant Garamond", serif; }
 .mini-ability{ font-size:.95rem; opacity:.9; }
 
 /* (już były) ornamenty + kolory zdolności; zostają bez zmian */
+/* mały lead nad nazwą postaci */
+.pretitle{
+  font-size: .95rem;
+  letter-spacing: .02em;
+  opacity: .9;
+  margin-bottom: 4px;
+}
+
+/* hamburger + menu – zawężone pudełko, wygodne klikanie poza treścią */
+.hamburger{
+  position:fixed; left:14px; top:14px; z-index:12000;
+  width:44px; height:38px; border-radius:10px;
+  background:rgba(0,0,0,.35); backdrop-filter: blur(6px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:5px; border:1px solid rgba(0,0,0,.4); box-shadow:0 0 18px rgba(0,255,224,.15);
+}
+.hamburger span{ width:22px; height:2px; background:#bfe; border-radius:2px; }
+
+.menu-overlay{
+  position:fixed; inset:0; z-index:13000; background:rgba(0,0,0,.6);
+  display:flex; align-items:center; justify-content:center; padding:24px;
+}
+
+/* WĘŻSZE pudełko: zostają wolne marginesy po bokach do zamykania */
+.menu-box{
+  width: min(880px, 82vw);
+  max-height: 86vh; overflow:auto;
+  background:rgba(10,22,24,.92);
+  border-radius:16px; padding:16px 16px 10px;
+  box-shadow:0 10px 40px rgba(0,0,0,.45);
+}
+
+.menu-title{ font-weight:700; margin:4px 0 14px; text-align:center; }
+
+/* węższe kafle */
+.menu-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap:12px;
+}
+.mini-card{
+  background:rgba(0,0,0,.35); border:1px solid rgba(0,0,0,.4); border-radius:14px; overflow:hidden;
+}
+.mini-media{ height:200px; background:#0b1718; display:flex; align-items:center; justify-content:center; }
+.mini-body{ padding:10px 12px 12px; }
+.mini-name{ font-weight:700; margin-bottom:6px; }
+.mini-line{ font-size:.95rem; opacity:.9; }
+
