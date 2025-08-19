@@ -20,9 +20,8 @@ body{
   background: radial-gradient(1000px 600px at 50% 10%, #113137 0%, #0b1618 60%, #070b0c 100%);
 }
 
-/* START: tło karczmy + QR */
-.start{
-  position:relative; min-height:100vh;
+/* START: tło + QR */
+.start{position:relative; min-height:100vh;
   background-image:image-set(
     url('/assets/bg-start.png') type('image/png'),
     url('/assets/start-bg.png') type('image/png'),
@@ -78,32 +77,40 @@ body{
   z-index:1;
 }
 .card.focus{ box-shadow:0 22px 80px rgba(25,180,184,.35) }
-.card.centered{ position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(1); z-index:4000 }
+.card.centered{ position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(1); z-index:9800 }
 .card.zoom{box-shadow:0 22px 90px rgba(25,180,184,.4)}
 .card .media{ position:relative; height:70%; background:#0a1517; display:flex; align-items:center; justify-content:center }
 .card .media img{width:100%; height:100%; object-fit:contain; object-position:center;}
-.card .body{ padding:12px 16px 16px }
+.card .body{ padding:12px 16px 64px } /* duży „oddech” na przycisk */
 .card h3{margin:0 0 4px 0; font-size:20px; letter-spacing:.3px}
 .card .role{color:var(--muted); font-size:13px}
 .card .meta{margin-top:8px; font-size:14px; line-height:1.35}
 .card .action{position:absolute; bottom:12px; left:0; right:0; display:flex; justify-content:center}
 .card .action button{background:transparent;border:1px solid rgba(255,255,255,.2);color:var(--text);padding:8px 12px;border-radius:12px;cursor:pointer;backdrop-filter:blur(4px)}
 
-/* trzy sloty na dole — wyraźnie mniejsze */
+/* trzy sloty na dole — mniejsze i ZAWSZE w kadrze */
 .card.at-left,
 .card.at-center,
 .card.at-right{
-  position:fixed; bottom:18px; transform:translate(-50%,0) scale(.78);
+  position:fixed; bottom:18px; transform:translate(-50%,0) scale(.82);
   width:var(--slot-w);
 }
 .card.at-left{  left:calc(50% - var(--slot-w) - var(--slot-gap)); }
 .card.at-center{left:50%;}
 .card.at-right{ left:calc(50% + var(--slot-w) + var(--slot-gap)); }
 
+/* Telefony — trzy sloty zawsze mieszczą się na szerokość */
+@media (max-width: 480px){
+  :root{ --slot-w: 46vw; --slot-gap: 6vw; }
+  .card.at-left{  left:20%;  }
+  .card.at-center{left:50%;  }
+  .card.at-right{ left:80%;  }
+  .card.at-left,.card.at-center,.card.at-right{ transform:translate(-50%,0) scale(.84); }
+}
+
 /* Overlay (dym i napisy) NA WSZYSTKIM */
 .overlay{
-  position:fixed;
-  inset:0;
+  position:fixed; inset:0;
   display:flex; align-items:center; justify-content:center;
   backdrop-filter: blur(10px) brightness(.9);
   background:rgba(0,0,0,.45);
@@ -130,9 +137,9 @@ body{
 @keyframes blink{50%{border-color:transparent}}
 
 /* ability nad innymi kartami */
-.ability.centered{ z-index: 9000; }
+.ability.centered{ z-index: 9900; }
 
-/* HOST */
+/* HOST panel */
 .host{position:fixed; top:8px; left:8px; right:8px; max-height:42vh; overflow:auto; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:10px 12px; font-size:13px; z-index:2000; backdrop-filter:blur(6px)}
 .host-header{font-weight:700; margin-bottom:6px; color:var(--teal)}
 .host ul{list-style:none; margin:0; padding:0}
