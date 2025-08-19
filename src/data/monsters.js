@@ -1,7 +1,51 @@
+// src/data/monsters.js
+// Potwory – z PIERWOTNYMI zdolnościami i obrazkami
+// ZASADA: zdolności potworów SIĘ NIE MIESZAJĄ – każdy dostaje swoją.
+
 export const MONSTERS = [
-  { id: 'upior',    name: 'Upiór',    what: 'Widmo',          img: '/assets/monsters/upior.png'    },
-  { id: 'strzyga',  name: 'Strzyga',  what: 'Klątwa',         img: '/assets/monsters/strzyga.png'  },
-  { id: 'wilkolak', name: 'Wilkołak', what: 'Bestia',         img: '/assets/monsters/wilkolak.png' },
-  { id: 'wampir',   name: 'Wampir',   what: 'Nocny łowca',    img: '/assets/monsters/wampir.png'   },
-  { id: 'bruxa',    name: 'Bruxa',    what: 'Wampirzyca',     img: '/assets/monsters/bruxa.png'    },
+  {
+    id: "strzyga",
+    name: "Strzyga",
+    role: "Potwór",
+    what: "Ugryzienie",
+    img: "/assets/monsters/strzyga.png",
+    baseAbilityId: "strzyga-bite",
+    baseAbilityTitle: "Strzyga — Ugryzienie",
+  },
+  {
+    id: "upior",
+    name: "Upiór",
+    role: "Potwór",
+    what: "Klątwa",
+    img: "/assets/monsters/upior.png",
+    baseAbilityId: "upior-curse",
+    baseAbilityTitle: "Upiór — Klątwa",
+  },
+  {
+    id: "wilkolak",
+    name: "Wilkołak",
+    role: "Potwór",
+    what: "Polowanie",
+    img: "/assets/monsters/wilkolak.png",
+    baseAbilityId: "wilkolak-hunt",
+    baseAbilityTitle: "Wilkołak — Polowanie",
+  },
+  {
+    id: "wampir",
+    name: "Wampir",
+    role: "Potwór",
+    what: "Wysysanie",
+    img: "/assets/monsters/wampir.png",
+    baseAbilityId: "wampir-drain",
+    baseAbilityTitle: "Wampir — Wysysanie",
+  },
+  {
+    id: "bruxa",
+    name: "Bruxa",
+    role: "Potwór",
+    what: "Krzyk",
+    img: "/assets/monsters/bruxa.png",
+    baseAbilityId: "bruxa-song",
+    baseAbilityTitle: "Bruxa — Krzyk",
+  },
 ];
