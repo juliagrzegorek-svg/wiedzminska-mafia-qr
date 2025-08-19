@@ -1,12 +1,13 @@
+// === src/App.jsx ===
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { CHARACTERS } from './data/characters.js';
 import { MONSTERS } from './data/monsters.js';
-import { GOOD_ABILITIES } from './data/abilities.js';
+import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js';
 import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realtime.js';
 import './styles.css';
 
-/* ======== bardzo prosty loader obrazów z fallbackami ======== */
+/* ===== prosty loader obrazów z fallbackami (obsługuje /assets/heroes/ i /assets/monsters/) ===== */
 function ImgSeq({ candidates, alt, style }) {
   const [i, setI] = useState(0);
   const list = Array.from(new Set((candidates || []).filter(Boolean)));
@@ -22,6 +23,27 @@ function ImgSeq({ candidates, alt, style }) {
   );
 }
 
+function imageCandidates(item) {
+  if (!item) return [];
+  const id = (item.id || '').toLowerCase();
+  const hasExt = (p) => /\.(png|jpe?g|webp)$/i.test(p);
+  const bases = [
+    item.img,
+    `/assets/${id}`,
+    `/assets/heroes/${id}`,
+    `/assets/monsters/${id}`,
+    `/assets/characters/${id}`,
+  ].filter(Boolean);
+
+  const out = [];
+  for (const b of bases) {
+    if (hasExt(b)) out.push(b);
+    else out.push(`${b}.png`, `${b}.jpg`, `${b}.webp`);
+  }
+  return out;
+}
+
+/* ===== localStorage klucze ===== */
 const LS = { name:'player:name', gender:'player:gender', hero:'player:hero', monster:'player:monster', ability:'player:ability', step:'player:step' };
 const isHost = () => {
   const u = new URL(location.href);
@@ -30,31 +52,36 @@ const isHost = () => {
 const params = new URLSearchParams(location.search);
 const presetHeroId = params.get('pre') || null;
 
-/* buduję listę ścieżek obrazka dla bohatera/potwora */
-function imageCandidates(item, kind='hero'){
-  if (!item) return [];
-  const id = (item.id || '').toLowerCase();
-  const hasExt = (p) => /\.(png|jpe?g|webp)$/i.test(p);
-  const bases = [
-    item.img,                         // twardy URL z danych
-    `/assets/${id}`,                  // public/assets/<id>.[ext]
-    `/assets/characters/${id}`,       // public/assets/characters/<id>.[ext]
-  ].filter(Boolean);
-  const withExt = [];
-  for (const b of bases) {
-    if (hasExt(b)) withExt.push(b);
-    else withExt.push(`${b}.png`, `${b}.jpg`, `${b}.webp`);
+/* ===== pomoc: wybór zdolności wg zasad ===== */
+function pickAbility({ hero, monster }) {
+  const rand = (a) => a[Math.floor(Math.random() * a.length)];
+
+  // jeśli jest monster → tylko z puli potworów (i nie mieszamy między potworami)
+  if (monster) {
+    const pool = MONSTER_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(monster.id));
+    const ability = rand(pool.length ? pool : MONSTER_ABILITIES);
+    return { ...ability, ownerType: 'monster', ownerName: monster.name };
   }
-  return withExt;
+
+  // w przeciwnym razie → tylko dobra zdolność bohatera
+  if (hero) {
+    const pool = GOOD_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(hero.id));
+    const ability = rand(pool.length ? pool : GOOD_ABILITIES);
+    return { ...ability, ownerType: 'good', ownerName: hero.name };
+  }
+
+  return null;
 }
 
 export default function App(){
   const [hostMode,setHostMode] = useState(isHost());
   useEffect(()=>{ const h=()=>setHostMode(isHost()); addEventListener('hashchange',h); return ()=>removeEventListener('hashchange',h); },[]);
 
+  // start
   const [name,setName] = useState(localStorage.getItem(LS.name) || '');
   const [gender,setGender] = useState(localStorage.getItem(LS.gender) || 'K');
 
+  // gra
   const [hero,setHero]       = useState(()=> JSON.parse(localStorage.getItem(LS.hero)    || 'null'));
   const [monster,setMonster] = useState(()=> JSON.parse(localStorage.getItem(LS.monster) || 'null'));
   const [ability,setAbility] = useState(()=> JSON.parse(localStorage.getItem(LS.ability) || 'null'));
@@ -64,20 +91,23 @@ export default function App(){
   const [focus,setFocus] = useState('center');
   const [zoom,setZoom]   = useState(null);
 
+  // host
   const [players,setPlayers] = useState([]);
   const [qrMap,setQrMap] = useState({});
   const [qrBig,setQrBig] = useState(null);
   const [qrStart,setQrStart] = useState(null);
 
+  // narracja
   const [showOverlay,setShowOverlay] = useState(false);
   const [showAlert,setShowAlert] = useState(false);
   const [typing,setTyping] = useState('');
   const typingTimer = useRef(null);
-  const fullText = 'W dzisiejszym jedzeniu został wykryty eliksir, który sprawił, że zdolności bohaterów pomieszały się. Czy Yen to Yen? Czy Emhyr wciąż może okazać łaskę?';
+  const fullText = 'W dzisiejszym jedzeniu został wykryty eliksir, który sprawił, że zdolności bohaterów i potworów już się nie mieszają. Czy Yen to Yen? Czy Emhyr wciąż może okazać łaskę?';
 
   const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, []);
   useEffect(()=>{ if(presetHero) setGender(presetHero.sex); },[presetHero]);
 
+  // persist
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name]);
   useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender]);
   useEffect(()=>{ localStorage.setItem(LS.step, step) },[step]);
@@ -86,8 +116,10 @@ export default function App(){
   useEffect(()=>{ ability ? localStorage.setItem(LS.ability, JSON.stringify(ability)) : localStorage.removeItem(LS.ability) },[ability]);
   useEffect(()=>{ setZoom(null); },[step]);
 
+  // host realtime
   useEffect(()=>{ if(!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return ()=>un&&un() },[hostMode]);
 
+  // QR na start
   useEffect(()=>{ (async()=>{ const link = `${location.origin}${location.pathname}?g=${getGameCode()}`; const data = await QRCode.toDataURL(link,{width:220,margin:1}); setQrStart(data); })().catch(()=>{}); },[]);
   function buildLinkFor(c){ return `${location.origin}${location.pathname}?g=${getGameCode()}&pre=${c.id}` }
   useEffect(()=>{ if(!hostMode) return; (async()=>{ const entries = await Promise.all(CHARACTERS.map(async c=>[c.id, await QRCode.toDataURL(buildLinkFor(c),{width:220,margin:1})])); setQrMap(Object.fromEntries(entries)); })().catch(()=>{}); },[hostMode]);
@@ -98,7 +130,8 @@ export default function App(){
       hero_id: hero?.id || null, hero_name: hero?.name || null,
       monster_id: monster?.id || null, monster_name: monster?.name || null,
       ability_id: ability?.id || null,
-      ability_title: ability ? ((ability.ownerName || hero?.name || '') + ' — ' + ability.title) : null,
+      ability_title: ability ? (`${ability.ownerName} — ${ability.title}`) : null,
+      ability_side: ability?.ownerType || null,
       updated_at: new Date().toISOString()
     });
   }
@@ -109,8 +142,10 @@ export default function App(){
     if(!name.trim()) return;
     const drawn = presetHero || randItem(CHARACTERS.filter(c=>c.sex===gender));
     setHero(drawn); setStep('hero'); setFocus('center'); setAbilityOpen(false);
-    const giveMonster = Math.random() < 0.35;
+
+    const giveMonster = Math.random() < 0.35; // szansa na potwora
     if(giveMonster) setMonster(randItem(MONSTERS)); else setMonster(null);
+
     setTimeout(publish, 0);
   }
 
@@ -143,9 +178,9 @@ export default function App(){
   }
   function onOverlayClick(){
     if(typing.length < fullText.length) return;
-    if(hero && !ability){ // ZDOLNOŚĆ TYLKO DLA BOHATERA
-      const randomGood = randItem(GOOD_ABILITIES);
-      setAbility({ ...randomGood, ownerName: hero.name });
+    if(!ability){
+      const picked = pickAbility({ hero, monster });
+      if (picked) setAbility(picked);
     }
     setShowOverlay(false);
     setStep('ability'); setFocus('right'); setAbilityOpen(true);
@@ -163,7 +198,9 @@ export default function App(){
     setTimeout(publish, 0);
   }
 
-  const abilityOwnerImg = hero?.img; // zdolności ma tylko bohater
+  // RENDER
+  const abilityOwner = ability?.ownerType === 'monster' ? monster : hero;
+  const abilityClass = ability?.ownerType === 'monster' ? 'monster' : 'good';
 
   function newCode(){ localStorage.removeItem('game:code'); location.reload(); }
   async function copy(t){ try{ await navigator.clipboard.writeText(t) }catch{} }
@@ -193,7 +230,7 @@ export default function App(){
                 <div>{p.name} <span className="muted">({p.gender})</span></div>
                 <div>{p.hero_name || <span className="muted">—</span>}</div>
                 <div>{p.monster_name || <span className="muted">—</span>}</div>
-                <div>{p.ability_title || <span className="muted">—</span>}</div>
+                <div>{p.ability_title ? (<><span className={p.ability_side==='monster'?'tag monster':'tag good'}></span>{p.ability_title}</>) : <span className="muted">—</span>}</div>
                 <div className="muted">{new Date(p.updated_at).toLocaleTimeString?.() || ''}</div>
               </div>
             ))}
@@ -265,11 +302,11 @@ export default function App(){
               style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1200 : 800) }}
             >
               <div className="media">
-                <ImgSeq candidates={imageCandidates(hero,'hero')} alt={hero.name} />
+                <ImgSeq candidates={imageCandidates(hero)} alt={hero.name} />
               </div>
-              <div className="body">
+              <div className="body ornament">
                 <h3>{hero.name}</h3>
-                <div className="role">{hero.role}</div>
+                <div className="role">Bohater{hero.sex==='K'?'ka':''}</div>
                 <div className="meta"><div><b>Co robi?</b> {hero.what}</div></div>
                 <div className="action"><button type="button">{step==='hero' ? 'Odłóż kartę na stół' : (zoom==='left' ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
@@ -288,9 +325,9 @@ export default function App(){
               style={{ zIndex: (step==='monster' || zoom==='center') ? 9800 : (focus==='center' ? 1200 : 900) }}
             >
               <div className="media">
-                <ImgSeq candidates={imageCandidates(monster,'monster')} alt={monster.name} />
+                <ImgSeq candidates={imageCandidates(monster)} alt={monster.name} />
               </div>
-              <div className="body">
+              <div className="body ornament">
                 <h3>{monster.name}</h3>
                 <div className="role">Potwór</div>
                 <div className="meta"><div><b>Co robi?</b> {monster.what}</div></div>
@@ -299,20 +336,21 @@ export default function App(){
             </div>
           )}
 
-          {/* ZDOLNOŚĆ (tylko bohater) */}
+          {/* ZDOLNOŚĆ */}
           {ability && (
             <div
               className={[
-                'card','ability', focus==='right'?'focus':'',
-                (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right'
+                'card','ability', abilityClass,
+                (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right',
+                focus==='right'?'focus':''
               ].join(' ')}
               onClick={onAbilityClick}
               style={{ zIndex: (step==='ability' || abilityOpen) ? 9800 : 1300 }}
             >
               <div className="media">
-                <ImgSeq candidates={imageCandidates(hero,'ability')} alt={hero?.name} />
+                <ImgSeq candidates={imageCandidates(abilityOwner)} alt={abilityOwner?.name} />
               </div>
-              <div className="body">
+              <div className="body ornament">
                 <h3>{`Zdolność: ${ability.ownerName} — ${ability.title.replace(/^.*—\s*/,'')}`}</h3>
                 <div className="role">Karta zdolności</div>
                 <div className="meta"><p>{ability.description}</p></div>
