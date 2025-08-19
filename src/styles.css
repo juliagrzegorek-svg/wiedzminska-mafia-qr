@@ -96,3 +96,33 @@ body{margin:0;background:#000;color:var(--text);font-family:system-ui,Segoe UI,R
 .qr-card{background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:8px; text-align:center; cursor:pointer}
 .qr-card img{width:100%; height:auto; background:#fff; padding:4px; border-radius:6px}
 .qr-card .small{display:block; margin-top:4px; font-size:12px; color:var(--muted)}
+/* === WITCHER FONTS === */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cormorant+Garamond:wght@400;500;600&display=swap');
+
+body { font-family: "Cormorant Garamond", serif; }
+.card h3, .host-header, .alert, .typewriter { font-family: "Cinzel", serif; letter-spacing: .3px; }
+
+/* === ornamenty w polu opisowym karty === */
+.card .body.ornament { position: relative; overflow: hidden; }
+.card .body.ornament::before,
+.card .body.ornament::after{
+  content:"";
+  position:absolute; width:140px; height:30px; opacity:.55;
+  background-repeat:no-repeat; background-size:contain;
+  filter: drop-shadow(0 0 2px rgba(255,215,0,.28));
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 28'><path fill='%23c9a84f' fill-opacity='.85' d='M0 14Q24 0 60 0t60 14q-24 14-60 14T0 14z'/></svg>");
+}
+.card .body.ornament::before { top:-12px; left:18px; }
+.card .body.ornament::after  { bottom:-14px; right:18px; transform:scaleX(-1); }
+
+/* === kolorystyka kart zdolności === */
+.card.ability.good .body { border-top:1px solid rgba(25,209,198,.6); box-shadow: inset 0 1px 0 rgba(25,209,198,.35); }
+.card.ability.good.focus { box-shadow: 0 0 24px rgba(25,209,198,.35); }
+.card.ability.monster .body { border-top:1px solid rgba(194,58,58,.6); box-shadow: inset 0 1px 0 rgba(194,58,58,.35); }
+.card.ability.monster.focus { box-shadow: 0 0 24px rgba(194,58,58,.35); }
+
+/* małe tagi w tabeli hosta */
+.tag { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:-1px; }
+.tag.good { background:#19d1c6; }
+.tag.monster { background:#c23a3a; }
+
