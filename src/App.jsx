@@ -164,45 +164,31 @@ export default function App(){
 
   const randItem = (a)=>a[Math.floor(Math.random()*a.length)];
 
-  /* ---------- START GRY ---------- */
-  function startGame(e){
-    e.preventDefault();
-    if (!name.trim()) return;
+startGame
 
-    // losuj bohatera zgodnie z płcią (lub użyj predefiniowanego z QR)
-    const pool = presetHero ? [presetHero] : CHARACTERS.filter(c => c.sex === gender);
-    const drawnHero = randItem(pool);
-    const drawnMonster = randItem(MONSTERS);
-
-    setHero(drawnHero);
-    setMonster(drawnMonster);
-    setAbility(null);
-    setStep('hero');
+function onHeroClick(){
+  if(step==='hero'){
+    setStep('hero-placed');      // bohater odkładany na stół
     setFocus('left');
+    if (monster) setTimeout(()=>{ setStep('monster'); setFocus('center'); }, 420);
+    else setTimeout(()=> triggerAlert(), 380);
     setTimeout(publish, 0);
+  } else {
+    setZoom(z => z==='left' ? null : 'left');
   }
+}
 
-  function onHeroClick(){
-    if(step==='hero'){
-      setStep('hero-placed');          // bohater zjeżdża na stół
-      setFocus('left');
-      if(monster) setTimeout(()=>{ setStep('monster'); setFocus('center') }, 420);
-      else setTimeout(()=> triggerAlert(), 380);
-      setTimeout(publish, 0);
-    } else {
-      setZoom(z=>z==='left'?null:'left');
-    }
+function onMonsterClick(){
+  if(step==='monster'){
+    setStep('monster-placed');   // potwór na stół
+    setFocus('center');
+    setTimeout(()=> triggerAlert(), 380);
+    setTimeout(publish, 0);
+  } else {
+    setZoom(z => z==='center' ? null : 'center');
   }
-  function onMonsterClick(){
-    if(step==='monster'){
-      setStep('monster-placed');       // potwór na stół
-      setFocus('center');
-      setTimeout(()=> triggerAlert(), 380);
-      setTimeout(publish, 0);
-    } else {
-      setZoom(z=>z==='center'?null:'center');
-    }
-  }
+}
+
 
   function triggerAlert(){
     setShowOverlay(true);
@@ -382,37 +368,38 @@ export default function App(){
             </button>
           )}
 
-          {/* BOHATER */}
-          {hero && (
-            <div
-              className={[
-                'card',
-                focus==='left'?'focus':'',
-                heroPosClass,
-                (focus==='left' ? 'focus' : '')
-              ].join(' ')}
-              onClick={onHeroClick}
-              style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1400 : 1000) }}
-            >
-              <div className="media">
-                <ImgSeq candidates={imageCandidates(hero)} alt={hero.name} />
-              </div>
-              <div className="body ornament">
-                <div className="pretitle">Twoja postać to:</div>
-                <h3>{hero.name}</h3>
-                <div className="role">Bohater{hero.sex==='K'?'ka':''}</div>
-                <div className="meta">
-                  <div><b>Co robi?</b> {hero.what}</div>
-                  <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
-                </div>
-                <div className="action">
-                  <button type="button">
-                    {step==='hero' ? 'Odłóż kartę' : (heroPosClass.includes('centered') ? 'Schowaj' : 'Powiększ')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+        {/* BOHATER */}
+{hero && (
+  <div
+    className={[
+      'card',
+      focus==='left' ? 'focus' : '',
+      (step==='hero' || zoom==='left') ? 'centered zoom' :
+      (['hero-placed','monster','monster-placed','ability','done'].includes(step) ? 'laid-left' : 'at-left')
+    ].join(' ')}
+    onClick={onHeroClick}
+    style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1100 : 800) }}
+  >
+    <div className="media">
+      <ImgSeq candidates={imageCandidates(hero)} alt={hero.name} />
+    </div>
+    <div className="body ornament">
+      <div className="pretitle">Twoja postać to:</div>
+      <h3>{hero.name}</h3>
+      <div className="role">Bohater{hero.sex==='K' ? 'ka' : ''}</div>
+      <div className="meta">
+        <div><b>Co robi?</b> {hero.what}</div>
+        <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
+      </div>
+      <div className="action">
+        <button type="button">
+          {step==='hero' ? 'Odłóż kartę na stół' : ( (step==='hero'||zoom==='left') ? 'Schowaj' : 'Powiększ' )}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
           {/* POTWÓR */}
           {monster && (
