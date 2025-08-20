@@ -39,7 +39,7 @@ body{
 }
 .start .form{ position: relative; z-index: 6; }
 
-/* jaśniejsze tło + delikatna winieta (plik w public/ → /bg-start.png) */
+/* Jaśniejsze tło + winieta (plik w public/ → /bg-start.png) */
 .start::before{
   content:"";
   position: fixed; inset: 0; z-index: -1;
@@ -271,16 +271,3 @@ input[type="text"]{
 .mini-name{ font-weight:800; font-family:"Cinzel", serif }
 .mini-line{ color:#d8e7e3; font-size:14px }
 .mini-desc{ color:#cfe3de; font-size:13px; opacity:.95 }
-
-/* ===== HOST (skrót) ===== */
-.host{ padding:16px; }
-.host-header{ font-weight:800; font-family:"Cinzel",serif; margin-bottom:8px }
-.host-actions{ display:flex; gap:8px; margin-bottom:12px }
-.host-qr{ display:grid; grid-template-columns:repeat(auto-fill, 140px); gap:10px }
-.qr-card{ background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); padding:8px; border-radius:12px; text-align:center; cursor:zoom-in }
-.qr-card img{ width:100%; height:auto; display:block; border-radius:8px }
-.host-list .row{ display:grid; grid-template-columns: 1.1fr 1fr 1fr 2fr .7fr; gap:10px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,.06) }
-.host-list .head{ font-weight:700; border-bottom:2px solid rgba(255,255,255,.18) }
-.tag{ display:inline-block; width:10px; height:10px; border-radius:50%; background:#7ee5cf; margin-right:6px; vertical-align:middle }
-.tag.monster{ background:#ff9a9a }
-.muted{ color:var(--muted) }
