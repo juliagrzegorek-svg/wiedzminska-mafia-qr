@@ -50,21 +50,27 @@ const isHost = () => {
 const params = new URLSearchParams(location.search);
 const presetHeroId = params.get('pre') || null;
 
-/* ---------- domyślne zdolności ---------- */
+/* ---------- domyślna zdolność bohatera + potwora ---------- */
 function getDefaultAbilityForHero(hero){
   if(!hero) return null;
+  // 1) najpierw ability z onlyFor
   let a = GOOD_ABILITIES.find(x => Array.isArray(x.onlyFor) && x.onlyFor.includes(hero.id));
   if (a) return a;
+  // 2) fallback: id zaczyna się od hero.id + '— ...'
   a = GOOD_ABILITIES.find(x => (x.id || '').startsWith(hero.id + '-'));
   return a || null;
 }
 function getDefaultAbilityForMonster(monster){
   if(!monster) return null;
-  const id = monster.baseAbilityId;
-  return MONSTER_ABILITIES.find(a => a.id === id) || null;
+  // 1) najpierw ability z onlyFor (najczęstszy zapis)
+  let a = MONSTER_ABILITIES.find(x => Array.isArray(x.onlyFor) && x.onlyFor.includes(monster.id));
+  if (a) return a;
+  // 2) fallback: id zaczyna się od monster.id + '— ...'
+  a = MONSTER_ABILITIES.find(x => (x.id || '').startsWith(monster.id + '-'));
+  return a || null;
 }
 
-/* ---------- ustalenie właściciela zdolności (do portretu i podpisu) ---------- */
+/* ---------- właściciel (do portretu na karcie zdolności) ---------- */
 function resolveOwnerOfAbility(abilityId){
   if(!abilityId) return null;
   const ownerHero = CHARACTERS.find(h => getDefaultAbilityForHero(h)?.id === abilityId);
@@ -74,16 +80,15 @@ function resolveOwnerOfAbility(abilityId){
   return null;
 }
 
-/* ---------- losowanie (potwory się nie mieszają) ---------- */
+/* ---------- losowanie zdolności (potwory nigdy się nie mieszają) ---------- */
 function pickAbility({ hero, monster }) {
-  if (monster) {
+  if (monster) {                               // potwór: baza, zero miksowania
     const base = getDefaultAbilityForMonster(monster);
-    if (!base) return null;
-    return { ...base, ownerType: 'monster', ownerName: monster.name };
+    return base ? { ...base, ownerType: 'monster', ownerName: monster.name } : null;
   }
-  if (hero) {
+  if (hero) {                                  // bohater: z puli good
     const pool = GOOD_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(hero.id));
-    const list = (pool.length ? pool : GOOD_ABILITIES);
+    const list = pool.length ? pool : GOOD_ABILITIES;
     const ability = list[Math.floor(Math.random() * list.length)];
     const owner = resolveOwnerOfAbility(ability.id);
     const ownerName = owner?.obj?.name || hero.name;
@@ -163,58 +168,44 @@ export default function App(){
 
   const randItem = (a)=>a[Math.floor(Math.random()*a.length)];
 
-  function startGame(e){
-    e.preventDefault();
-    if(!name.trim()) return;
-
-    let drawn;
-    if (presetHero) {
-      // jeśli przyszło z QR – to ta konkretna postać
-      drawn = presetHero;
-    } else {
-      // twarda gwarancja zgodności płci
-      const pool = CHARACTERS.filter(c => (c.sex === gender));
-      drawn = randItem(pool.length ? pool : CHARACTERS);
-      if (pool.length && drawn.sex !== gender) drawn = randItem(pool);
-    }
-    setHero(drawn);
-    setMonster(Math.random() < 0.35 ? randItem(MONSTERS) : null);
-    setAbility(null);
-    setStep('hero');
-    setAbilityOpen(false);
-
-    setTimeout(publish, 0);
-  }
+ function startGame(e){
 
   function onHeroClick(){
-    if(step==='hero'){
-      setStep('hero-placed');
-      // jeśli nie ma potwora, po krótkiej chwili pokazujemy narrację
-      if(!monster) setTimeout(()=> triggerAlert(), 350);
-    } else {
-      setZoom(z=>z==='left'?null:'left');
-    }
-  }
-  function onMonsterClick(){
-    if(step==='monster'){
-      setStep('monster-placed');
-      setTimeout(()=> triggerAlert(), 350);
-    } else {
-      setZoom(z=>z==='center'?null:'center');
-    }
-  }
+  if(step==='hero'){
+    setStep('hero-placed');          // bohater zjeżdża na stół
+    setFocus('left');
+    if(monster) setTimeout(()=>{ setStep('monster'); setFocus('center') }, 420);
+    else setTimeout(()=> triggerAlert(), 380);
+    setTimeout(publish, 0);
+  } else setZoom(z=>z==='left'?null:'left');
+}
+function onMonsterClick(){
+  if(step==='monster'){
+    setStep('monster-placed');       // potwór na stół
+    setFocus('center');
+    setTimeout(()=> triggerAlert(), 380);
+    setTimeout(publish, 0);
+  } else setZoom(z=>z==='center'?null:'center');
+}
 
-  function triggerAlert(){
-    setShowOverlay(true); setShowAlert(true);
-    setTimeout(()=>{
-      setShowAlert(false); setTyping(''); let i=0;
-      clearInterval(typingTimer.current);
-      typingTimer.current = setInterval(()=>{
-        i++; setTyping(fullText.slice(0,i));
-        if(i>=fullText.length) clearInterval(typingTimer.current);
-      }, 45);
-    }, 1500);
-  }
+
+ const fullText = 'W dzisiejszym jedzeniu wykryto eliksir, po którym zdolności Waszych postaci wymieszały się. Czy Yen jest dalej lekarką a Emhyr jako sędzia nadal uniewinni przed śmiercią? Strzeżcie się Mrocznego Kręgu, — szepczą, tną nici zaufania, sabotują. Nie wierzcie nikomu. Nawet sobie.';
+
+function triggerAlert(){
+  setShowOverlay(true);     // włącz dym/overlay
+  setShowAlert(true);       // „Ludzie uważajcie!”
+  setTimeout(()=>{
+    setShowAlert(false);    // po chwili przejdź do „klikanej” treści
+    setTyping('');
+    let i=0;
+    clearInterval(typingTimer.current);
+    typingTimer.current = setInterval(()=>{
+      i++; setTyping(fullText.slice(0,i));
+      if(i>=fullText.length) clearInterval(typingTimer.current);
+    }, 55);
+  }, 3000);
+}
+
   function onOverlayClick(){
     if(typing.length < fullText.length) return;   // dopisz do końca zanim zniknie
     if(!ability){
@@ -378,15 +369,17 @@ export default function App(){
             </button>
           )}
 
-          {/* BOHATER */}
-          {hero && (
-            <div
-              className={[
-                'card', 'good-glow',
-                heroPosClass
-              ].join(' ')}
-              onClick={onHeroClick}
-            >
+         {/* BOHATER */}
+<div
+  className={[
+    'card',
+    focus==='left'?'focus':'',
+    (step==='hero' || zoom==='left') ? 'centered zoom' : 'at-left',
+    (step==='hero-placed' || step==='monster' || step==='monster-placed' || step==='ability' || step==='done') ? 'placed' : ''
+  ].join(' ')}
+  ...
+>
+
               <div className="media">
                 <ImgSeq candidates={imageCandidates(hero)} alt={hero.name} />
             </div>
@@ -395,23 +388,28 @@ export default function App(){
                 <h3>{hero.name}</h3>
                 <div className="role">Bohater{hero.sex==='K'?'ka':''}</div>
                 <div className="meta">
-                  <div><b>Co robi?</b> {hero.what}</div>
-                  <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
-                </div>
-                <div className="action"><button type="button">{step==='hero' ? 'Odłóż kartę na stół' : (heroPosClass.includes('centered') ? 'Schowaj' : 'Powiększ')}</button></div>
+                 <div className="meta">
+  <div><b>Co robi?</b> {hero.what}</div>
+  <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
+</div>
+
+                <div className="action"><button type="button">{step==='hero' ? 'Odłóż kartę' : (heroPosClass.includes('centered') ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
             </div>
+          
           )}
 
-          {/* POTWÓR */}
-          {monster && (
-            <div
-              className={[
-                'card', 'monster-glow',
-                monsterPosClass
-              ].join(' ')}
-              onClick={onMonsterClick}
-            >
+         {/* POTWÓR */}
+<div
+  className={[
+    'card',
+    focus==='center'?'focus':'',
+    (step==='monster' || zoom==='center') ? 'centered zoom' : 'at-center',
+    (step==='monster-placed' || step==='ability' || step==='done') ? 'placed' : ''
+  ].join(' ')}
+  ...
+>
+
               <div className="media">
                 <ImgSeq candidates={imageCandidates(monster)} alt={monster.name} />
               </div>
@@ -419,23 +417,27 @@ export default function App(){
                 <h3>{monster.name}</h3>
                 <div className="role">Potwór</div>
                 <div className="meta">
-                  <div><b>Co robi?</b> {monster.what}</div>
-                  <div><b>Zdolność:</b> {monsterDefaultNameOnly || '—'}</div>
+                 <div className="meta">
+  <div><b>Co robi?</b> {monster.what}</div>
+  <div><b>Zdolność:</b> {monsterDefaultNameOnly || '—'}</div>
+</div>
+
                 </div>
-                <div className="action"><button type="button">{step==='monster' ? 'Odłóż kartę na stół' : (monsterPosClass.includes('centered') ? 'Schowaj' : 'Powiększ')}</button></div>
+                <div className="action"><button type="button">{step==='monster' ? 'Odłóż kartę' : (monsterPosClass.includes('centered') ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
             </div>
           )}
 
-          {/* ZDOLNOŚĆ */}
-          {ability && (
-            <div
-              className={[
-                'card','ability', abilityClass,
-                abilityPosClass
-              ].join(' ')}
-              onClick={onAbilityClick}
-            >
+         {/* ZDOLNOŚĆ */}
+<div
+  className={[
+    'card','ability', abilityClass,
+    (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right',
+    (step==='done') ? 'placed' : ''
+  ].join(' ')}
+  ...
+>
+
               <div className="media">
                 <ImgSeq candidates={imageCandidates(abilityPortrait)} alt={abilityPortrait?.name} />
               </div>
@@ -446,7 +448,7 @@ export default function App(){
                   <p><b>Twoja aktualna zdolność:</b> {`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</p>
                   <p>{ability.description}</p>
                 </div>
-                <div className="action"><button type="button">{step==='ability' ? 'Odłóż kartę na stół' : (abilityPosClass.includes('centered') ? 'Schowaj' : 'Pokaż')}</button></div>
+                <div className="action"><button type="button">{step==='ability' ? 'Odłóż kartę' : (abilityPosClass.includes('centered') ? 'Schowaj' : 'Pokaż')}</button></div>
               </div>
             </div>
           )}
