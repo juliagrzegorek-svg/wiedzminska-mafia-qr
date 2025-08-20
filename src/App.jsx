@@ -367,6 +367,19 @@ const monsterDefaultNameOnly = (() => {
   return (parts[1] || parts[0] || '').trim();
 })();
 
+  // ——— Bezpieczne tytuł/opis dla karty zdolności ———
+const abilityTitleSafe = useMemo(() => {
+  if (!ability) return '';
+  // Jeśli mamy gotowy tytuł w danych — użyj go
+  if (ability.title && ability.title.trim()) return ability.title;
+  // W innym wypadku zbuduj „Zdolność: <właściciel> — <nazwa>”
+  const namePart = abilityNameOnly || '';
+  const ownerPart = ability.ownerName || '';
+  return `Zdolność: ${ownerPart}${namePart ? ` — ${namePart}` : ''}`;
+}, [ability, abilityNameOnly]);
+
+const abilityDescSafe = ability?.description || '';
+
 
   function newCode() { localStorage.removeItem('game:code'); location.reload(); }
   async function copy(t) { try { await navigator.clipboard.writeText(t); } catch {} }
@@ -564,11 +577,11 @@ const monsterDefaultNameOnly = (() => {
 </div>
 
               <div className="body ornament">
-                <h3>{`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</h3>
+              <h3>{abilityTitleSafe}</h3>
                 <div className="role">Karta zdolności</div>
                 <div className="meta">
-                  <p><b>Twoja aktualna zdolność:</b> {`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</p>
-                  <p>{ability.description}</p>
+                 <p><b>Twoja aktualna zdolność:</b> {abilityTitleSafe}</p>
+<p>{abilityDescSafe}</p>
                 </div>
                 <div className="action">
                   <button type="button">
