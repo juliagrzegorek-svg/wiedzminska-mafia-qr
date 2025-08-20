@@ -20,15 +20,7 @@ async function makeQR(url) {
     errorCorrectionLevel: 'M',
     color: { dark: '#000000', light: '#FFFFFF' },
   });
-}
-const [qrBaseUrl, setQrBaseUrl] = useState(getQrBase());
-function setPublicQrUrl(){
-  const next = prompt('Publiczny URL dla QR (np. https://twoja-nazwa.netlify.app albo http://192.168.0.12:5173):', qrBaseUrl);
-  if(!next) return;
-  const cleaned = next.trim().replace(/\/+$/,'');
-  localStorage.setItem(PUBLIC_URL_KEY, cleaned);
-  setQrBaseUrl(cleaned);
-}
+
 /* ---------- obrazki z fallbackami ---------- */
 function ImgSeq({ candidates, alt, style }) {
   const [i, setI] = useState(0);
@@ -159,6 +151,19 @@ export default function App() {
     const cleaned = next.trim().replace(/\/+$/, '');
     localStorage.setItem(PUBLIC_URL_KEY, cleaned);
     setQrBaseUrl(cleaned);
+    // QR BASE – musi być wewnątrz komponentu
+const [qrBaseUrl, setQrBaseUrl] = useState(getQrBase());
+function setPublicQrUrl(){
+  const next = prompt(
+    'Publiczny URL dla QR (np. https://twoja-nazwa.netlify.app albo http://192.168.0.12:5173):',
+    qrBaseUrl
+  );
+  if(!next) return;
+  const cleaned = next.trim().replace(/\/+$/,'');
+  localStorage.setItem('game:public-url', cleaned);
+  setQrBaseUrl(cleaned);
+}
+
   }
 
   // narracja
