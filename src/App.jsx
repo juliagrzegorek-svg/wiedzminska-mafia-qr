@@ -61,11 +61,10 @@ function getDefaultAbilityForHero(hero){
 function getDefaultAbilityForMonster(monster){
   if(!monster) return null;
   const id = monster.baseAbilityId;
-  if (!id) return null;
   return MONSTER_ABILITIES.find(a => a.id === id) || null;
 }
 
-/* ---------- właściciel zdolności (do portretu) ---------- */
+/* ---------- ustalenie właściciela zdolności (do portretu i podpisu) ---------- */
 function resolveOwnerOfAbility(abilityId){
   if(!abilityId) return null;
   const ownerHero = CHARACTERS.find(h => getDefaultAbilityForHero(h)?.id === abilityId);
@@ -75,15 +74,13 @@ function resolveOwnerOfAbility(abilityId){
   return null;
 }
 
-/* ---------- losowanie zdolności ---------- */
+/* ---------- losowanie (potwory się nie mieszają) ---------- */
 function pickAbility({ hero, monster }) {
-  // POTWÓR: żadnego mieszania – bierze bazową
   if (monster) {
     const base = getDefaultAbilityForMonster(monster);
     if (!base) return null;
     return { ...base, ownerType: 'monster', ownerName: monster.name };
   }
-  // BOHATER: los z „good”
   if (hero) {
     const pool = GOOD_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(hero.id));
     const list = (pool.length ? pool : GOOD_ABILITIES);
@@ -93,13 +90,6 @@ function pickAbility({ hero, monster }) {
     return { ...ability, ownerType: 'good', ownerName };
   }
   return null;
-}
-
-/* ---------- dopasowanie płci ---------- */
-function matchesGender(c, g){
-  const v = String(c.sex || '').toLowerCase();
-  if (g === 'K') return ['k','f','female','kobieta','woman'].includes(v);
-  return ['m','male','mężczyzna','man'].includes(v);
 }
 
 /* ---------- komponent ---------- */
@@ -116,7 +106,6 @@ export default function App(){
   const [step,setStep]       = useState(localStorage.getItem(LS.step) || 'start');
 
   const [abilityOpen,setAbilityOpen] = useState(false);
-  const [focus,setFocus] = useState('center');
   const [zoom,setZoom]   = useState(null);
 
   // MENU
@@ -133,14 +122,17 @@ export default function App(){
   const [showAlert,setShowAlert] = useState(false);
   const [typing,setTyping] = useState('');
   const typingTimer = useRef(null);
+
   const fullText =
     'W dzisiejszym jedzeniu wykryto eliksir, po którym zdolności Waszych postaci wymieszały się. ' +
     'Czy Yen jest dalej lekarką a Emhyr jako sędzia nadal uniewinni przed śmiercią? ' +
-    'Strzeżcie się Mrocznego Kręgu, — szepczą, tną nici zaufania, sabotują. Nie wierzcie nikomu. Nawet sobie.';
+    'Strzeżcie się Mrocznego Kręgu, — szepczą, tną nici zaufania, sabotują. ' +
+    'Nie wierzcie nikomu. Nawet sobie.';
 
   const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, []);
   useEffect(()=>{ if(presetHero) setGender(presetHero.sex); },[presetHero]);
 
+  // persist
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name]);
   useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender]);
   useEffect(()=>{ localStorage.setItem(LS.step, step) },[step]);
@@ -170,33 +162,46 @@ export default function App(){
   }
 
   const randItem = (a)=>a[Math.floor(Math.random()*a.length)];
+
   function startGame(e){
     e.preventDefault();
     if(!name.trim()) return;
-    const pool = CHARACTERS.filter(c => matchesGender(c, gender));
-    const drawn = presetHero || randItem(pool.length ? pool : CHARACTERS);
-    setHero(drawn); setStep('hero'); setFocus('center'); setAbilityOpen(false);
 
-    const giveMonster = Math.random() < 0.35;
-    if(giveMonster) setMonster(randItem(MONSTERS)); else setMonster(null);
+    let drawn;
+    if (presetHero) {
+      // jeśli przyszło z QR – to ta konkretna postać
+      drawn = presetHero;
+    } else {
+      // twarda gwarancja zgodności płci
+      const pool = CHARACTERS.filter(c => (c.sex === gender));
+      drawn = randItem(pool.length ? pool : CHARACTERS);
+      if (pool.length && drawn.sex !== gender) drawn = randItem(pool);
+    }
+    setHero(drawn);
+    setMonster(Math.random() < 0.35 ? randItem(MONSTERS) : null);
+    setAbility(null);
+    setStep('hero');
+    setAbilityOpen(false);
 
     setTimeout(publish, 0);
   }
 
   function onHeroClick(){
     if(step==='hero'){
-      setStep('hero-placed'); setFocus('left');
-      if(monster) setTimeout(()=>{ setStep('monster'); setFocus('center') }, 450);
-      else setTimeout(()=> triggerAlert(), 400);
-      setTimeout(publish, 0);
-    } else setZoom(z=>z==='left'?null:'left');
+      setStep('hero-placed');
+      // jeśli nie ma potwora, po krótkiej chwili pokazujemy narrację
+      if(!monster) setTimeout(()=> triggerAlert(), 350);
+    } else {
+      setZoom(z=>z==='left'?null:'left');
+    }
   }
   function onMonsterClick(){
     if(step==='monster'){
-      setStep('monster-placed'); setFocus('center');
-      setTimeout(()=> triggerAlert(), 400);
-      setTimeout(publish, 0);
-    } else setZoom(z=>z==='center'?null:'center');
+      setStep('monster-placed');
+      setTimeout(()=> triggerAlert(), 350);
+    } else {
+      setZoom(z=>z==='center'?null:'center');
+    }
   }
 
   function triggerAlert(){
@@ -208,22 +213,27 @@ export default function App(){
         i++; setTyping(fullText.slice(0,i));
         if(i>=fullText.length) clearInterval(typingTimer.current);
       }, 45);
-    }, 2600);
+    }, 1500);
   }
   function onOverlayClick(){
-    if(typing.length < fullText.length) return;
+    if(typing.length < fullText.length) return;   // dopisz do końca zanim zniknie
     if(!ability){
       const picked = pickAbility({ hero, monster });
       if (picked) setAbility(picked);
     }
     setShowOverlay(false);
-    setStep('ability'); setFocus('right'); setAbilityOpen(true);
+    setStep('ability');
+    setAbilityOpen(true);
     setTimeout(publish, 0);
   }
 
   function onAbilityClick(){
-    if(step==='ability'){ setStep('done'); setAbilityOpen(false); setFocus('right'); setTimeout(publish,0); }
-    else setAbilityOpen(v=>!v);
+    if(step==='ability'){
+      setStep('done'); setAbilityOpen(false);
+      setTimeout(publish,0);
+    } else {
+      setAbilityOpen(v=>!v);
+    }
   }
 
   function resetAll(){
@@ -264,6 +274,21 @@ export default function App(){
   function newCode(){ localStorage.removeItem('game:code'); location.reload(); }
   async function copy(t){ try{ await navigator.clipboard.writeText(t) }catch{} }
   function openQR(c){ setQrBig({ name:c.name, data: qrMap[c.id], link: buildLinkFor(c) }) }
+
+  // klasy pozycji — karty rzeczywiście „leżą” na dole stołu
+  const heroPosClass =
+    (step==='hero' || zoom==='left') ? 'centered zoom' :
+    (['hero-placed','monster','monster-placed','ability','done'].includes(step) ? 'laid-left' : 'at-left');
+
+  const monsterPosClass =
+    !monster ? '' :
+    (step==='monster' || zoom==='center') ? 'centered zoom' :
+    (['monster-placed','ability','done'].includes(step) ? 'laid-center' : 'at-center');
+
+  const abilityPosClass =
+    !ability ? '' :
+    ((step==='ability' || abilityOpen) ? 'centered zoom' :
+      (step==='done' ? 'laid-right' : 'at-right'));
 
   return (
     <div className="app">
@@ -323,17 +348,15 @@ export default function App(){
       {/* START */}
       {step==='start' && (
         <div className="start">
-          <div className="top-blur">
-            <form className="form" onSubmit={startGame}>
-              <div style={{fontWeight:700, marginRight:8}}>Wpisz imię i nazwisko gracza oraz płeć:</div>
-              <input type="text" placeholder="Imię i nazwisko" value={name} onChange={e=>setName(e.target.value)} />
-              <div className="gender">
-                <label><input type="radio" name="gender" value="K" checked={gender==='K'} onChange={e=>setGender(e.target.value)} /> Kobieta</label>
-                <label><input type="radio" name="gender" value="M" checked={gender==='M'} onChange={e=>setGender(e.target.value)} style={{marginLeft:10}}/> Mężczyzna</label>
-              </div>
-              <button className="btn" disabled={!name.trim()} type="submit">Losuj kartę</button>
-            </form>
-          </div>
+          <form className="form" onSubmit={startGame}>
+            <div style={{fontWeight:700, marginRight:8}}>Wpisz imię i nazwisko gracza oraz płeć:</div>
+            <input type="text" placeholder="Imię i nazwisko" value={name} onChange={e=>setName(e.target.value)} />
+            <div className="gender">
+              <label><input type="radio" name="gender" value="K" checked={gender==='K'} onChange={e=>setGender(e.target.value)} /> Kobieta</label>
+              <label><input type="radio" name="gender" value="M" checked={gender==='M'} onChange={e=>setGender(e.target.value)} style={{marginLeft:10}}/> Mężczyzna</label>
+            </div>
+            <button className="btn" disabled={!name.trim()} type="submit">Losuj kartę</button>
+          </form>
 
           {qrStart && (
             <div className="start-qr">
@@ -359,16 +382,14 @@ export default function App(){
           {hero && (
             <div
               className={[
-                'card','good',
-                focus==='left'?'focus':'',
-                (step==='hero' || zoom==='left') ? 'centered zoom' : 'at-left'
+                'card', 'good-glow',
+                heroPosClass
               ].join(' ')}
               onClick={onHeroClick}
-              style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1200 : 800) }}
             >
               <div className="media">
                 <ImgSeq candidates={imageCandidates(hero)} alt={hero.name} />
-              </div>
+            </div>
               <div className="body ornament">
                 <div className="pretitle">Twoja postać to:</div>
                 <h3>{hero.name}</h3>
@@ -377,7 +398,7 @@ export default function App(){
                   <div><b>Co robi?</b> {hero.what}</div>
                   <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
                 </div>
-                <div className="action"><button type="button">{step==='hero' ? 'Odłóż kartę na stół' : (zoom==='left' ? 'Schowaj' : 'Powiększ')}</button></div>
+                <div className="action"><button type="button">{step==='hero' ? 'Odłóż kartę na stół' : (heroPosClass.includes('centered') ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
             </div>
           )}
@@ -386,12 +407,10 @@ export default function App(){
           {monster && (
             <div
               className={[
-                'card','monster',
-                focus==='center'?'focus':'',
-                (step==='monster' || zoom==='center') ? 'centered zoom' : 'at-center'
+                'card', 'monster-glow',
+                monsterPosClass
               ].join(' ')}
               onClick={onMonsterClick}
-              style={{ zIndex: (step==='monster' || zoom==='center') ? 9800 : (focus==='center' ? 1200 : 900) }}
             >
               <div className="media">
                 <ImgSeq candidates={imageCandidates(monster)} alt={monster.name} />
@@ -403,7 +422,7 @@ export default function App(){
                   <div><b>Co robi?</b> {monster.what}</div>
                   <div><b>Zdolność:</b> {monsterDefaultNameOnly || '—'}</div>
                 </div>
-                <div className="action"><button type="button">{step==='monster' ? 'Odłóż kartę na stół' : (zoom==='center' ? 'Schowaj' : 'Powiększ')}</button></div>
+                <div className="action"><button type="button">{step==='monster' ? 'Odłóż kartę na stół' : (monsterPosClass.includes('centered') ? 'Schowaj' : 'Powiększ')}</button></div>
               </div>
             </div>
           )}
@@ -413,11 +432,9 @@ export default function App(){
             <div
               className={[
                 'card','ability', abilityClass,
-                (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right',
-                focus==='right'?'focus':''
+                abilityPosClass
               ].join(' ')}
               onClick={onAbilityClick}
-              style={{ zIndex: (step==='ability' || abilityOpen) ? 9800 : 1300 }}
             >
               <div className="media">
                 <ImgSeq candidates={imageCandidates(abilityPortrait)} alt={abilityPortrait?.name} />
@@ -429,7 +446,7 @@ export default function App(){
                   <p><b>Twoja aktualna zdolność:</b> {`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</p>
                   <p>{ability.description}</p>
                 </div>
-                <div className="action"><button type="button">{step==='ability' ? 'Odłóż kartę na stół' : (abilityOpen ? 'Schowaj' : 'Pokaż')}</button></div>
+                <div className="action"><button type="button">{step==='ability' ? 'Odłóż kartę na stół' : (abilityPosClass.includes('centered') ? 'Schowaj' : 'Pokaż')}</button></div>
               </div>
             </div>
           )}
@@ -438,7 +455,9 @@ export default function App(){
           {showOverlay && (
             <div className="overlay" onClick={onOverlayClick}>
               <div className="smoke"></div>
-              {showAlert ? <div className="alert">Ludzie uważajcie!</div> : <div className="typewriter">{typing}<span className="cursor"></span></div>}
+              {showAlert
+                ? <div className="alert">Ludzie uważajcie!</div>
+                : <div className="typewriter">{typing}<span className="cursor"></span></div>}
             </div>
           )}
 
@@ -448,7 +467,7 @@ export default function App(){
         </div>
       )}
 
-      {/* MENU */}
+      {/* MENU: galeria pierwotnych kart bohaterów */}
       {menuOpen && (
         <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
           <div className="menu-box" onClick={e=>e.stopPropagation()}>
