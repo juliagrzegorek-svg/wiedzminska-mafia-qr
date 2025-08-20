@@ -407,7 +407,8 @@ const abilityDescSafe = ability?.description || '';
         : (step === 'done' ? 'laid-right' : 'at-right'));
 
   return (
-    <div className="app">
+   <div className={`app ${hostMode ? 'is-host' : ''}`}>
+
 
       {/* HOST */}
       {hostMode && (
@@ -472,8 +473,9 @@ const abilityDescSafe = ability?.description || '';
       )}
 
       {/* START */}
-      {step === 'start' && (
-        <div className="start">
+     {step==='start' && (
+  <div className={`start ${hostMode ? 'no-bg' : ''}`}>
+
           <form className="form" onSubmit={startGame}>
             <div style={{ fontWeight: 700, marginRight: 8 }}>Wpisz imię i nazwisko gracza oraz płeć:</div>
             <input type="text" placeholder="Imię i nazwisko" value={name} onChange={e => setName(e.target.value)} />
@@ -496,7 +498,9 @@ const abilityDescSafe = ability?.description || '';
       {/* STÓŁ */}
       {step !== 'start' && (
         <div className="table">
-          <div className="table-surface" />
+         {!hostMode && <div className="table-surface" />}
+
+
 
           {(step === 'ability' || step === 'done') && (
             <button className="hamburger" aria-label="Menu" onClick={() => setMenuOpen(true)}>
