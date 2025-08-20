@@ -174,9 +174,9 @@ function setPublicQrUrl(){
   const typingTimer = useRef(null);
 
   const fullText =
-    'W dzisiejszym jedzeniu wykryto eliksir, po którym zdolności Waszych postaci wymieszały się. ' +
+    'Mroczny Krąg od jakiegoś czasu sabotuje naszym życiem. Zażyliście ich eliksirów, przez co zdolności Waszych postaci wymieszały się. ' +
     'Czy Yen jest dalej lekarką a Emhyr jako sędzia nadal uniewinni przed śmiercią? ' +
-    'Strzeżcie się Mrocznego Kręgu, — szepczą, tną nici zaufania, sabotują. ' +
+    'Strzeżcie się Mrocznego Kręgu, — szepczą i tną nici zaufania. ' +
     'Nie wierzcie nikomu. Nawet sobie.';
 
   const presetHero = useMemo(() => CHARACTERS.find((c) => c.id === presetHeroId) || null, []);
@@ -601,7 +601,7 @@ const abilityDescSafe = ability?.description || '';
                 <div className="role">Karta zdolności</div>
                 <div className="meta">
                  <p><b>Twoja aktualna zdolność:</b> {abilityTitleSafe}</p>
-<p>{abilityDescSafe}</p>
+<p style={{ whiteSpace: 'pre-wrap' }}>{abilityDescSafe}</p>
                 </div>
                 <div className="action">
                   <button type="button">
