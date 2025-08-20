@@ -117,18 +117,7 @@ input[type="text"]{
 }
 .btn:hover{ transform:translateY(-1px); border-color:rgba(255,255,255,.22) }
 
-/* QR w lewym górnym */
-.start-qr{
-  position:fixed; left:14px; top:14px; z-index:20;
-  width:190px; display:flex; flex-direction:column; align-items:center; gap:6px;
-  user-select:none;
-}
-.start-qr img{ width:190px; height:190px; display:block; border-radius:10px; box-shadow:var(--shadow) }
-.small{ font-size:12px; color:var(--muted) }
 
-/* na średnich/wysokich szerokościach — odsuwamy form w prawo */
-@media (min-width: 481px){
-  .form{ margin-left: 240px; }
 }
 /* bardzo wąskie telefony */
 @media (max-width: 480px){
@@ -309,29 +298,6 @@ input[type="text"]{
 .tag.monster{ background:#ff9a9a }
 .muted{ color:var(--muted) }
 
-/* === START: QR na dole po lewej; formularz wyśrodkowany i niezależny === */
-.start{ position:relative; min-height:100vh; overflow:hidden; }
-.start::before{
-  content:""; position:fixed; inset:0; z-index:-1;
-  background:
-    radial-gradient(900px 420px at 50% 15%, rgba(18,61,61,.45) 0%, rgba(11,17,19,.8) 60%, rgba(8,12,13,.95) 100%),
-    url("/assets/bg-start.png") center/cover no-repeat;
-  filter:saturate(90%);
-}
-.top-blur{
-  width:min(560px, 92vw); margin:10vh auto 0;
-  padding:22px; border-radius:18px;
-  background: linear-gradient(180deg, rgba(14,32,32,.65), rgba(5,12,12,.55));
-  border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow);
-}
-.start-qr{
-  position:fixed; left:14px; bottom:14px; z-index:20;
-  display:flex; flex-direction:column; align-items:center; gap:6px;
-}
-.start-qr img{ width:170px; height:auto; border-radius:10px; box-shadow:var(--shadow) }
-@media (max-width:480px){
-  .start-qr img{ width:140px }
-}
 
 /* === TŁO STOŁU (zawsze pod spodem) === */
 .table{ position:relative; min-height:100vh; overflow:hidden; isolation:isolate; }
