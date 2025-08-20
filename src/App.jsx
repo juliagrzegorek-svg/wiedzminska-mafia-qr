@@ -6,20 +6,19 @@ import { MONSTERS } from './data/monsters.js';
 import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js';
 import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realtime.js';
 import './styles.css';
-// ——— konfiguracja adresu dla QR + lepsze generowanie QR ———
+
+// ——— konfiguracja adresu dla QR ———
 const PUBLIC_URL_KEY = 'game:public-url';
-
-function getQrBase(){
+function getQrBase() {
   const saved = localStorage.getItem(PUBLIC_URL_KEY);
-  return (saved || location.origin).replace(/\/+$/,''); // bez końcowych "/"
+  return (saved || location.origin).replace(/\/+$/, '');
 }
-
-async function makeQR(url){
+async function makeQR(url) {
   return await QRCode.toDataURL(url, {
     width: 220,
     margin: 1,
     errorCorrectionLevel: 'M',
-    color: { dark: '#000000', light: '#FFFFFF' } // biały spód = łatwiejsze skanowanie
+    color: { dark: '#000000', light: '#FFFFFF' },
   });
 }
 
@@ -58,7 +57,14 @@ function imageCandidates(item) {
 }
 
 /* ---------- localStorage ---------- */
-const LS = { name:'player:name', gender:'player:gender', hero:'player:hero', monster:'player:monster', ability:'player:ability', step:'player:step' };
+const LS = {
+  name: 'player:name',
+  gender: 'player:gender',
+  hero: 'player:hero',
+  monster: 'player:monster',
+  ability: 'player:ability',
+  step: 'player:step',
+};
 const isHost = () => {
   const u = new URL(location.href);
   return u.searchParams.get('host') === '1' || u.hash.includes('host');
@@ -66,42 +72,42 @@ const isHost = () => {
 const params = new URLSearchParams(location.search);
 const presetHeroId = params.get('pre') || null;
 const monstersFlag = String(params.get('m') || params.get('monsters') || '').toLowerCase();
-const withMonsters = ['1','true','yes','y','tak','t'].includes(monstersFlag);
+const withMonsters = ['1', 'true', 'yes', 'y', 'tak', 't'].includes(monstersFlag);
 
 /* ---------- domyślna zdolność bohatera + potwora ---------- */
-function getDefaultAbilityForHero(hero){
-  if(!hero) return null;
-  let a = GOOD_ABILITIES.find(x => Array.isArray(x.onlyFor) && x.onlyFor.includes(hero.id));
+function getDefaultAbilityForHero(hero) {
+  if (!hero) return null;
+  let a = GOOD_ABILITIES.find((x) => Array.isArray(x.onlyFor) && x.onlyFor.includes(hero.id));
   if (a) return a;
-  a = GOOD_ABILITIES.find(x => (x.id || '').startsWith(hero.id + '-'));
+  a = GOOD_ABILITIES.find((x) => (x.id || '').startsWith(hero.id + '-'));
   return a || null;
 }
-function getDefaultAbilityForMonster(monster){
-  if(!monster) return null;
-  let a = MONSTER_ABILITIES.find(x => Array.isArray(x.onlyFor) && x.onlyFor.includes(monster.id));
+function getDefaultAbilityForMonster(monster) {
+  if (!monster) return null;
+  let a = MONSTER_ABILITIES.find((x) => Array.isArray(x.onlyFor) && x.onlyFor.includes(monster.id));
   if (a) return a;
-  a = MONSTER_ABILITIES.find(x => (x.id || '').startsWith(monster.id + '-'));
+  a = MONSTER_ABILITIES.find((x) => (x.id || '').startsWith(monster.id + '-'));
   return a || null;
 }
 
-/* ---------- właściciel (do portretu na karcie zdolności) ---------- */
-function resolveOwnerOfAbility(abilityId){
-  if(!abilityId) return null;
-  const ownerHero = CHARACTERS.find(h => getDefaultAbilityForHero(h)?.id === abilityId);
-  if (ownerHero) return { type:'hero', obj: ownerHero };
-  const ownerMonster = MONSTERS.find(m => getDefaultAbilityForMonster(m)?.id === abilityId);
-  if (ownerMonster) return { type:'monster', obj: ownerMonster };
+/* ---------- właściciel (portret do karty zdolności) ---------- */
+function resolveOwnerOfAbility(abilityId) {
+  if (!abilityId) return null;
+  const ownerHero = CHARACTERS.find((h) => getDefaultAbilityForHero(h)?.id === abilityId);
+  if (ownerHero) return { type: 'hero', obj: ownerHero };
+  const ownerMonster = MONSTERS.find((m) => getDefaultAbilityForMonster(m)?.id === abilityId);
+  if (ownerMonster) return { type: 'monster', obj: ownerMonster };
   return null;
 }
 
-/* ---------- losowanie zdolności (potwory nigdy się nie mieszają) ---------- */
+/* ---------- losowanie zdolności ---------- */
 function pickAbility({ hero, monster }) {
   if (monster) {
     const base = getDefaultAbilityForMonster(monster);
     return base ? { ...base, ownerType: 'monster', ownerName: monster.name } : null;
   }
   if (hero) {
-    const pool = GOOD_ABILITIES.filter(a => !a.onlyFor || (Array.isArray(a.onlyFor) && a.onlyFor.includes(hero.id)));
+    const pool = GOOD_ABILITIES.filter((a) => !a.onlyFor || (Array.isArray(a.onlyFor) && a.onlyFor.includes(hero.id)));
     const list = pool.length ? pool : GOOD_ABILITIES;
     const ability = list[Math.floor(Math.random() * list.length)];
     const owner = resolveOwnerOfAbility(ability.id);
@@ -111,47 +117,47 @@ function pickAbility({ hero, monster }) {
   return null;
 }
 
-export default function App(){
-  const [hostMode,setHostMode] = useState(isHost());
-  useEffect(()=>{ const h=()=>setHostMode(isHost()); addEventListener('hashchange',h); return ()=>removeEventListener('hashchange',h); },[]);
+export default function App() {
+  const [hostMode, setHostMode] = useState(isHost());
+  useEffect(() => {
+    const h = () => setHostMode(isHost());
+    addEventListener('hashchange', h);
+    return () => removeEventListener('hashchange', h);
+  }, []);
 
-  const [name,setName] = useState(localStorage.getItem(LS.name) || '');
-  const [gender,setGender] = useState(localStorage.getItem(LS.gender) || 'K');
+  const [name, setName] = useState(localStorage.getItem(LS.name) || '');
+  const [gender, setGender] = useState(localStorage.getItem(LS.gender) || 'K');
 
-  const [hero,setHero]       = useState(()=> JSON.parse(localStorage.getItem(LS.hero)    || 'null'));
-  const [monster,setMonster] = useState(()=> JSON.parse(localStorage.getItem(LS.monster) || 'null'));
-  const [ability,setAbility] = useState(()=> JSON.parse(localStorage.getItem(LS.ability) || 'null'));
-  const [step,setStep]       = useState(localStorage.getItem(LS.step) || 'start');
+  const [hero, setHero] = useState(() => JSON.parse(localStorage.getItem(LS.hero) || 'null'));
+  const [monster, setMonster] = useState(() => JSON.parse(localStorage.getItem(LS.monster) || 'null'));
+  const [ability, setAbility] = useState(() => JSON.parse(localStorage.getItem(LS.ability) || 'null'));
+  const [step, setStep] = useState(localStorage.getItem(LS.step) || 'start');
 
-  const [abilityOpen,setAbilityOpen] = useState(false);
-  const [zoom,setZoom]   = useState(null);
-  const [focus,setFocus] = useState(null);
+  const [abilityOpen, setAbilityOpen] = useState(false);
+  const [zoom, setZoom] = useState(null);
+  const [focus, setFocus] = useState(null);
 
   // MENU
-  const [menuOpen,setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // host
-  const [players,setPlayers] = useState([]);
-  const [qrMap,setQrMap] = useState({});
-  const [qrBig,setQrBig] = useState(null);
-  const [qrStart,setQrStart] = useState(null);
-// publiczny adres, którego mają używać kody QR (LAN/IP lub domena)
-const [qrBaseUrl, setQrBaseUrl] = useState(getQrBase());
-function setPublicQrUrl(){
-  const next = prompt(
-    'Publiczny URL dla QR (np. http://192.168.0.12:5173 albo https://twojadomena):',
-    qrBaseUrl
-  );
-  if(!next) return;
-  const cleaned = next.trim().replace(/\/+$/,'');
-  localStorage.setItem(PUBLIC_URL_KEY, cleaned);
-  setQrBaseUrl(cleaned);
-}
+  const [players, setPlayers] = useState([]);
+  const [qrMap, setQrMap] = useState({});
+  const [qrBig, setQrBig] = useState(null);
+  const [qrStart, setQrStart] = useState(null);
+  const [qrBaseUrl, setQrBaseUrl] = useState(getQrBase());
+  function setPublicQrUrl() {
+    const next = prompt('Publiczny URL dla QR (np. http://192.168.0.12:5173 albo https://twojadomena):', qrBaseUrl);
+    if (!next) return;
+    const cleaned = next.trim().replace(/\/+$/, '');
+    localStorage.setItem(PUBLIC_URL_KEY, cleaned);
+    setQrBaseUrl(cleaned);
+  }
 
   // narracja
-  const [showOverlay,setShowOverlay] = useState(false);
-  const [showAlert,setShowAlert] = useState(false);
-  const [typing,setTyping] = useState('');
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [typing, setTyping] = useState('');
   const typingTimer = useRef(null);
 
   const fullText =
@@ -160,125 +166,137 @@ function setPublicQrUrl(){
     'Strzeżcie się Mrocznego Kręgu, — szepczą, tną nici zaufania, sabotują. ' +
     'Nie wierzcie nikomu. Nawet sobie.';
 
-  const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, []);
+  const presetHero = useMemo(() => CHARACTERS.find((c) => c.id === presetHeroId) || null, []);
+
+  // —— SAMOLECZENIE STANU NA STARCIe (koniec z „czarną stroną”) ——
+  useEffect(() => {
+    if (step !== 'start' && (!hero || !name.trim())) {
+      setStep('start');
+      setFocus(null);
+      setZoom(null);
+    }
+    if (step === 'monster' && !monster) setStep('hero-placed');
+    if (step === 'ability' && !ability) setStep('hero-placed');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // persist
-  useEffect(()=>{ localStorage.setItem(LS.name, name) },[name]);
-  useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender]);
-  useEffect(()=>{ localStorage.setItem(LS.step, step) },[step]);
-  useEffect(()=>{ hero    ? localStorage.setItem(LS.hero, JSON.stringify(hero))       : localStorage.removeItem(LS.hero)    },[hero]);
-  useEffect(()=>{ monster ? localStorage.setItem(LS.monster, JSON.stringify(monster)) : localStorage.removeItem(LS.monster) },[monster]);
-  useEffect(()=>{ ability ? localStorage.setItem(LS.ability, JSON.stringify(ability)) : localStorage.removeItem(LS.ability) },[ability]);
-  useEffect(()=>{ setZoom(null); },[step]);
+  useEffect(() => { localStorage.setItem(LS.name, name); }, [name]);
+  useEffect(() => { localStorage.setItem(LS.gender, gender); }, [gender]);
+  useEffect(() => { localStorage.setItem(LS.step, step); }, [step]);
+  useEffect(() => { hero ? localStorage.setItem(LS.hero, JSON.stringify(hero)) : localStorage.removeItem(LS.hero); }, [hero]);
+  useEffect(() => { monster ? localStorage.setItem(LS.monster, JSON.stringify(monster)) : localStorage.removeItem(LS.monster); }, [monster]);
+  useEffect(() => { ability ? localStorage.setItem(LS.ability, JSON.stringify(ability)) : localStorage.removeItem(LS.ability); }, [ability]);
+  useEffect(() => { setZoom(null); }, [step]);
 
   // host realtime
-  useEffect(()=>{ if(!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return ()=>un&&un() },[hostMode]);
+  useEffect(() => { if (!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return () => un && un(); }, [hostMode]);
 
- // QR start (z użyciem publicznego URL i białego tła QR)
-useEffect(()=>{ (async()=>{
-  const link = `${qrBaseUrl}${location.pathname}?g=${getGameCode()}`;
-  setQrStart(await makeQR(link));
-})().catch(()=>{}); },[qrBaseUrl]);
+  // QR start
+  useEffect(() => {
+    (async () => {
+      const link = `${qrBaseUrl}${location.pathname}?g=${getGameCode()}`;
+      setQrStart(await makeQR(link));
+    })().catch(() => {});
+  }, [qrBaseUrl]);
 
-function buildLinkFor(c){
-  return `${qrBaseUrl}${location.pathname}?g=${getGameCode()}&pre=${c.id}`;
-}
+  function buildLinkFor(c) {
+    return `${qrBaseUrl}${location.pathname}?g=${getGameCode()}&pre=${c.id}`;
+  }
+  useEffect(() => {
+    if (!hostMode) return;
+    (async () => {
+      const entries = await Promise.all(CHARACTERS.map(async (c) => [c.id, await makeQR(buildLinkFor(c))]));
+      setQrMap(Object.fromEntries(entries));
+    })().catch(() => {});
+  }, [hostMode, qrBaseUrl]);
 
-useEffect(()=>{ if(!hostMode) return; (async()=>{
-  const entries = await Promise.all(
-    CHARACTERS.map(async c => [c.id, await makeQR(buildLinkFor(c))])
-  );
-  setQrMap(Object.fromEntries(entries));
-})().catch(()=>{}); },[hostMode, qrBaseUrl]);
-
-  async function publish(){
+  async function publish() {
     await upsertPlayer({
-      name, gender,
-      hero_id: hero?.id || null, hero_name: hero?.name || null,
-      monster_id: monster?.id || null, monster_name: monster?.name || null,
+      name,
+      gender,
+      hero_id: hero?.id || null,
+      hero_name: hero?.name || null,
+      monster_id: monster?.id || null,
+      monster_name: monster?.name || null,
       ability_id: ability?.id || null,
-      ability_title: ability ? (`${ability.ownerName} — ${ability.title?.split('—')?.[1]?.trim() || ability.title}`) : null,
+      ability_title: ability ? `${ability.ownerName} — ${ability.title?.split('—')?.[1]?.trim() || ability.title}` : null,
       ability_side: ability?.ownerType || null,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     });
   }
 
-  const randItem = (a)=>a[Math.floor(Math.random()*a.length)];
+  const randItem = (a) => a[Math.floor(Math.random() * a.length)];
 
-  /* ---------- START GAME (NAPRAWIONE) ---------- */
- function startGame(e){
-  e.preventDefault();
-  if (!name.trim()) return;
+  /* ---------- START GAME ---------- */
+  function startGame(e) {
+    e.preventDefault();
+    if (!name.trim()) return;
 
-  // losuj tylko z wybranej płci
-  const pickByGender = (g) => {
-    const pool = CHARACTERS.filter(c => c.sex === g);
-    return pool[Math.floor(Math.random() * pool.length)];
-  };
+    // losowanie tylko z wybranej płci (fallback: cała pula)
+    const pickByGender = (g) => {
+      const pool = CHARACTERS.filter((c) => c.sex === g);
+      const list = pool.length ? pool : CHARACTERS;
+      return list[Math.floor(Math.random() * list.length)];
+    };
 
-  let pickedHero = null;
+    let pickedHero = null;
+    if (presetHero && presetHero.sex === gender) pickedHero = presetHero;
+    if (!pickedHero) pickedHero = pickByGender(gender);
 
-  // preset z QR tylko jeśli pasuje płcią
-  if (presetHero && presetHero.sex === gender) pickedHero = presetHero;
-  if (!pickedHero) pickedHero = pickByGender(gender);
+    let pickedMonster = null;
+    if (withMonsters) pickedMonster = randItem(MONSTERS);
 
-  // opcjonalny potwór (?m=1)
-  let pickedMonster = null;
-  if (withMonsters) {
-    pickedMonster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+    setAbility(null);
+    setHero(pickedHero);
+    setMonster(pickedMonster);
+    setStep('hero');
+    setFocus('left');
+    setAbilityOpen(false);
+    setTimeout(publish, 0);
   }
 
-  setAbility(null);
-  setHero(pickedHero);
-  setMonster(pickedMonster);
-  setStep('hero');
-  setFocus('left');
-  setAbilityOpen(false);
-
-  setTimeout(publish, 0);
-}
-
-  function onHeroClick(){
-    if(step==='hero'){
-      setStep('hero-placed');      // bohater odkładany na stół
+  function onHeroClick() {
+    if (step === 'hero') {
+      setStep('hero-placed');
       setFocus('left');
-      if (monster) setTimeout(()=>{ setStep('monster'); setFocus('center'); }, 420);
-      else setTimeout(()=> triggerAlert(), 380);
+      if (monster) setTimeout(() => { setStep('monster'); setFocus('center'); }, 420);
+      else setTimeout(() => triggerAlert(), 380);
       setTimeout(publish, 0);
     } else {
-      setZoom(z => z==='left' ? null : 'left');
+      setZoom((z) => (z === 'left' ? null : 'left'));
     }
   }
 
-  function onMonsterClick(){
-    if(step==='monster'){
-      setStep('monster-placed');   // potwór na stół
+  function onMonsterClick() {
+    if (step === 'monster') {
+      setStep('monster-placed');
       setFocus('center');
-      setTimeout(()=> triggerAlert(), 380);
+      setTimeout(() => triggerAlert(), 380);
       setTimeout(publish, 0);
     } else {
-      setZoom(z => z==='center' ? null : 'center');
+      setZoom((z) => (z === 'center' ? null : 'center'));
     }
   }
 
-  function triggerAlert(){
+  function triggerAlert() {
     setShowOverlay(true);
     setShowAlert(true);
-    setTimeout(()=>{
+    setTimeout(() => {
       setShowAlert(false);
       setTyping('');
-      let i=0;
+      let i = 0;
       clearInterval(typingTimer.current);
-      typingTimer.current = setInterval(()=>{
-        i++; setTyping(fullText.slice(0,i));
-        if(i>=fullText.length) clearInterval(typingTimer.current);
+      typingTimer.current = setInterval(() => {
+        i++; setTyping(fullText.slice(0, i));
+        if (i >= fullText.length) clearInterval(typingTimer.current);
       }, 55);
     }, 3000);
   }
 
-  function onOverlayClick(){
-    if(typing.length < fullText.length) return;   // dopisz do końca zanim zniknie
-    if(!ability){
+  function onOverlayClick() {
+    if (typing.length < fullText.length) return;
+    if (!ability) {
       const picked = pickAbility({ hero, monster });
       if (picked) setAbility(picked);
     }
@@ -289,32 +307,26 @@ useEffect(()=>{ if(!hostMode) return; (async()=>{
     setTimeout(publish, 0);
   }
 
-  function onAbilityClick(){
-    if(step==='ability'){
+  function onAbilityClick() {
+    if (step === 'ability') {
       setStep('done'); setAbilityOpen(false); setFocus(null);
-      setTimeout(publish,0);
+      setTimeout(publish, 0);
     } else {
-      setAbilityOpen(v=>!v);
-      setFocus(f => f==='right' ? null : 'right');
+      setAbilityOpen((v) => !v);
+      setFocus((f) => (f === 'right' ? null : 'right'));
     }
   }
 
-  function resetAll(){
-    for(const k of Object.values(LS)) localStorage.removeItem(k);
-    setHero(null); setMonster(null); setAbility(null); setStep('start'); setAbilityOpen(false); setFocus(null); setZoom(null);
+  function resetAll() {
+    for (const k of Object.values(LS)) localStorage.removeItem(k);
+    setHero(null); setMonster(null); setAbility(null);
+    setStep('start'); setAbilityOpen(false); setFocus(null); setZoom(null);
     setTimeout(publish, 0);
   }
 
   // wyliczenia do widoku
-  const abilityPortrait = useMemo(()=>{
-    const abilityPortraitCandidates = useMemo(()=>{
-  const base = imageCandidates(abilityPortrait);
-  if (base && base.length) return base;
-  return ability?.ownerType === 'monster'
-    ? imageCandidates(monster)
-    : imageCandidates(hero);
-}, [abilityPortrait, hero, monster, ability]);
-if(!ability?.id) return null;
+  const abilityPortrait = useMemo(() => {
+    if (!ability?.id) return null;
     const owner = resolveOwnerOfAbility(ability.id);
     return owner?.obj || null;
   }, [ability]);
@@ -341,24 +353,23 @@ if(!ability?.id) return null;
     return (parts[1] || parts[0] || '').trim();
   })();
 
-  function newCode(){ localStorage.removeItem('game:code'); location.reload(); }
-  async function copy(t){ try{ await navigator.clipboard.writeText(t) }catch{} }
-  function openQR(c){ setQrBig({ name:c.name, data: qrMap[c.id], link: buildLinkFor(c) }) }
+  function newCode() { localStorage.removeItem('game:code'); location.reload(); }
+  async function copy(t) { try { await navigator.clipboard.writeText(t); } catch {} }
+  function openQR(c) { setQrBig({ name: c.name, data: qrMap[c.id], link: buildLinkFor(c) }); }
 
-  // klasy pozycji — karty rzeczywiście „leżą” na dole stołu
   const heroPosClass =
-    (step==='hero' || zoom==='left') ? 'centered zoom' :
-    (['hero-placed','monster','monster-placed','ability','done'].includes(step) ? 'laid-left' : 'at-left');
+    (step === 'hero' || zoom === 'left') ? 'centered zoom'
+      : (['hero-placed', 'monster', 'monster-placed', 'ability', 'done'].includes(step) ? 'laid-left' : 'at-left');
 
   const monsterPosClass =
     !monster ? '' :
-    (step==='monster' || zoom==='center') ? 'centered zoom' :
-    (['monster-placed','ability','done'].includes(step) ? 'laid-center' : 'at-center');
+      (step === 'monster' || zoom === 'center') ? 'centered zoom'
+        : (['monster-placed', 'ability', 'done'].includes(step) ? 'laid-center' : 'at-center');
 
   const abilityPosClass =
     !ability ? '' :
-    ((step==='ability' || abilityOpen) ? 'centered zoom' :
-      (step==='done' ? 'laid-right' : 'at-right'));
+      ((step === 'ability' || abilityOpen) ? 'centered zoom'
+        : (step === 'done' ? 'laid-right' : 'at-right'));
 
   return (
     <div className="app">
@@ -370,38 +381,37 @@ if(!ability?.id) return null;
             Panel Mistrza Gry — kod gry: {getGameCode()} {rtEnabled ? '' : '(realtime wyłączony)'}
           </div>
 
-        <div className="host-actions">
-  <button className="btn" onClick={()=>copy(`${qrBaseUrl}${location.pathname}?g=${getGameCode()}`)}>Kopiuj link do gry</button>
-  <button className="btn" onClick={newCode}>Nowy kod gry</button>
-  <button className="btn" onClick={setPublicQrUrl}>Ustaw URL do QR</button>
-</div>
+          <div className="host-actions">
+            <button className="btn" onClick={() => copy(`${qrBaseUrl}${location.pathname}?g=${getGameCode()}`)}>Kopiuj link do gry</button>
+            <button className="btn" onClick={newCode}>Nowy kod gry</button>
+            <button className="btn" onClick={setPublicQrUrl}>Ustaw URL do QR</button>
+          </div>
 
-{ (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && (
-  <div className="small" style={{marginTop:6, opacity:.85}}>
-    QR z <b>localhost</b> nie działa na telefonie. Ustaw adres LAN (np. <i>http://192.168.x.x:5173</i>) albo domenę produkcyjną.
-  </div>
-)}
-
+          {(location.hostname === 'localhost' || location.hostname === '127.0.0.1') && (
+            <div className="small" style={{ marginTop: 6, opacity: .85 }}>
+              QR z <b>localhost</b> nie działa na telefonie. Ustaw adres LAN (np. <i>http://192.168.x.x:5173</i>) albo domenę produkcyjną.
+            </div>
+          )}
 
           <div className="host-list">
             <div className="row head">
               <div>Gracz</div><div>Bohater</div><div>Potwór</div><div>Zdolność</div><div>czas</div>
             </div>
-            {players.map(p=>(
+            {players.map(p => (
               <div className="row" key={p.player_id || (p.name + p.updated_at)}>
                 <div>{p.name} <span className="muted">({p.gender})</span></div>
                 <div>{p.hero_name || <span className="muted">—</span>}</div>
                 <div>{p.monster_name || <span className="muted">—</span>}</div>
-                <div>{p.ability_title ? (<><span className={p.ability_side==='monster'?'tag monster':'tag good'}></span>{p.ability_title}</>) : <span className="muted">—</span>}</div>
+                <div>{p.ability_title ? (<><span className={p.ability_side === 'monster' ? 'tag monster' : 'tag good'}></span>{p.ability_title}</>) : <span className="muted">—</span>}</div>
                 <div className="muted">{new Date(p.updated_at).toLocaleTimeString?.() || ''}</div>
               </div>
             ))}
           </div>
 
-          <div style={{marginTop:8, fontWeight:700}}>QR bohaterów (kliknij aby powiększyć):</div>
+          <div style={{ marginTop: 8, fontWeight: 700 }}>QR bohaterów (kliknij aby powiększyć):</div>
           <div className="host-qr">
-            {CHARACTERS.map(c=>(
-              <div className="qr-card" key={c.id} onClick={()=>openQR(c)} title={c.name}>
+            {CHARACTERS.map(c => (
+              <div className="qr-card" key={c.id} onClick={() => openQR(c)} title={c.name}>
                 {qrMap[c.id] ? <img src={qrMap[c.id]} alt={`QR ${c.name}`} /> : <span className="small">generuję…</span>}
                 <span className="small">{c.name}</span>
               </div>
@@ -411,27 +421,27 @@ if(!ability?.id) return null;
       )}
 
       {qrBig && (
-        <div className="qr-modal" onClick={()=>setQrBig(null)}>
-          <div className="qr-box" onClick={e=>e.stopPropagation()}>
-            <div style={{fontWeight:700, marginBottom:8}}>{qrBig.name}</div>
+        <div className="qr-modal" onClick={() => setQrBig(null)}>
+          <div className="qr-box" onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>{qrBig.name}</div>
             <img src={qrBig.data} alt={`QR ${qrBig.name}`} />
-            <div style={{marginTop:10, display:'flex', gap:8, justifyContent:'center'}}>
-              <button className="btn" onClick={()=>copy(qrBig.link)}>Kopiuj link</button>
-              <button className="btn" onClick={()=>setQrBig(null)}>Zamknij</button>
+            <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button className="btn" onClick={() => copy(qrBig.link)}>Kopiuj link</button>
+              <button className="btn" onClick={() => setQrBig(null)}>Zamknij</button>
             </div>
           </div>
         </div>
       )}
 
       {/* START */}
-      {step==='start' && (
+      {step === 'start' && (
         <div className="start">
           <form className="form" onSubmit={startGame}>
-            <div style={{fontWeight:700, marginRight:8}}>Wpisz imię i nazwisko gracza oraz płeć:</div>
-            <input type="text" placeholder="Imię i nazwisko" value={name} onChange={e=>setName(e.target.value)} />
+            <div style={{ fontWeight: 700, marginRight: 8 }}>Wpisz imię i nazwisko gracza oraz płeć:</div>
+            <input type="text" placeholder="Imię i nazwisko" value={name} onChange={e => setName(e.target.value)} />
             <div className="gender">
-              <label><input type="radio" name="gender" value="K" checked={gender==='K'} onChange={e=>setGender(e.target.value)} /> Kobieta</label>
-              <label><input type="radio" name="gender" value="M" checked={gender==='M'} onChange={e=>setGender(e.target.value)} style={{marginLeft:10}}/> Mężczyzna</label>
+              <label><input type="radio" name="gender" value="K" checked={gender === 'K'} onChange={e => setGender(e.target.value)} /> Kobieta</label>
+              <label><input type="radio" name="gender" value="M" checked={gender === 'M'} onChange={e => setGender(e.target.value)} style={{ marginLeft: 10 }} /> Mężczyzna</label>
             </div>
             <button className="btn" disabled={!name.trim()} type="submit">Losuj kartę</button>
           </form>
@@ -446,12 +456,12 @@ if(!ability?.id) return null;
       )}
 
       {/* STÓŁ */}
-      {step!=='start' && (
+      {step !== 'start' && (
         <div className="table">
           <div className="table-surface" />
 
-          {(step==='ability' || step==='done') && (
-            <button className="hamburger" aria-label="Menu" onClick={()=>setMenuOpen(true)}>
+          {(step === 'ability' || step === 'done') && (
+            <button className="hamburger" aria-label="Menu" onClick={() => setMenuOpen(true)}>
               <span></span><span></span><span></span>
             </button>
           )}
@@ -461,28 +471,28 @@ if(!ability?.id) return null;
             <div
               className={[
                 'card',
-                focus==='left' ? 'focus' : '',
-                (step==='hero' || zoom==='left') ? 'centered zoom' :
-                (['hero-placed','monster','monster-placed','ability','done'].includes(step) ? 'laid-left' : 'at-left')
+                focus === 'left' ? 'focus' : '',
+                (step === 'hero' || zoom === 'left') ? 'centered zoom'
+                  : (['hero-placed', 'monster', 'monster-placed', 'ability', 'done'].includes(step) ? 'laid-left' : 'at-left'),
               ].join(' ')}
               onClick={onHeroClick}
-              style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1100 : 800) }}
+              style={{ zIndex: (step === 'hero' || zoom === 'left') ? 9800 : (focus === 'left' ? 1100 : 800) }}
             >
               <div className="media">
-            <ImgSeq candidates={abilityPortraitCandidates} alt={abilityPortrait?.name || ability?.ownerName} />
-
+                {/* ← tu WRACAMY do poprawnej grafiki bohatera */}
+                <ImgSeq candidates={imageCandidates(hero)} alt={hero.name} />
               </div>
               <div className="body ornament">
                 <div className="pretitle">Twoja postać to:</div>
                 <h3>{hero.name}</h3>
-                <div className="role">Bohater{hero.sex==='K' ? 'ka' : ''}</div>
+                <div className="role">Bohater{hero.sex === 'K' ? 'ka' : ''}</div>
                 <div className="meta">
                   <div><b>Co robi?</b> {hero.what}</div>
                   <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
                 </div>
                 <div className="action">
                   <button type="button">
-                    {step==='hero' ? 'Odłóż kartę na stół' : ( (step==='hero'||zoom==='left') ? 'Schowaj' : 'Powiększ' )}
+                    {step === 'hero' ? 'Odłóż kartę na stół' : ((step === 'hero' || zoom === 'left') ? 'Schowaj' : 'Powiększ')}
                   </button>
                 </div>
               </div>
@@ -494,11 +504,11 @@ if(!ability?.id) return null;
             <div
               className={[
                 'card',
-                focus==='center'?'focus':'',
-                monsterPosClass
+                focus === 'center' ? 'focus' : '',
+                monsterPosClass,
               ].join(' ')}
               onClick={onMonsterClick}
-              style={{ zIndex: (step==='monster' || zoom==='center') ? 9800 : (focus==='center' ? 1200 : 900) }}
+              style={{ zIndex: (step === 'monster' || zoom === 'center') ? 9800 : (focus === 'center' ? 1200 : 900) }}
             >
               <div className="media">
                 <ImgSeq candidates={imageCandidates(monster)} alt={monster.name} />
@@ -512,7 +522,7 @@ if(!ability?.id) return null;
                 </div>
                 <div className="action">
                   <button type="button">
-                    {step==='monster' ? 'Odłóż kartę' : (monsterPosClass.includes('centered') ? 'Schowaj' : 'Powiększ')}
+                    {step === 'monster' ? 'Odłóż kartę' : (monsterPosClass.includes('centered') ? 'Schowaj' : 'Powiększ')}
                   </button>
                 </div>
               </div>
@@ -525,13 +535,22 @@ if(!ability?.id) return null;
               className={[
                 'card', 'ability', abilityClass,
                 abilityPosClass,
-                (focus==='right' ? 'focus' : '')
+                (focus === 'right' ? 'focus' : ''),
               ].join(' ')}
               onClick={onAbilityClick}
-              style={{ zIndex: (step==='ability' || abilityOpen) ? 9800 : 1300 }}
+              style={{ zIndex: (step === 'ability' || abilityOpen) ? 9800 : 1300 }}
             >
               <div className="media">
-                <ImgSeq candidates={imageCandidates(abilityPortrait)} alt={abilityPortrait?.name} />
+                {/* portret właściciela zdolności z fallbackiem */}
+                <ImgSeq
+                  candidates={
+                    imageCandidates(
+                      abilityPortrait ||
+                      (ability?.ownerType === 'monster' ? monster : hero)
+                    )
+                  }
+                  alt={abilityPortrait?.name || ability?.ownerName}
+                />
               </div>
               <div className="body ornament">
                 <h3>{`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</h3>
@@ -542,7 +561,7 @@ if(!ability?.id) return null;
                 </div>
                 <div className="action">
                   <button type="button">
-                    {step==='ability' ? 'Odłóż kartę na stół' : (abilityOpen ? 'Schowaj' : 'Pokaż')}
+                    {step === 'ability' ? 'Odłóż kartę na stół' : (abilityOpen ? 'Schowaj' : 'Pokaż')}
                   </button>
                 </div>
               </div>
@@ -560,20 +579,20 @@ if(!ability?.id) return null;
           )}
 
           {/* RESET */}
-          <div style={{ position:'absolute', top:12, right:12, opacity:.7, fontSize:12 }}>
-            <button onClick={resetAll} className="btn" style={{padding:'6px 10px'}}>RESET</button>
+          <div style={{ position: 'absolute', top: 12, right: 12, opacity: .7, fontSize: 12 }}>
+            <button onClick={resetAll} className="btn" style={{ padding: '6px 10px' }}>RESET</button>
           </div>
         </div>
       )}
 
-      {/* MENU: galeria pierwotnych kart bohaterów */}
+      {/* MENU */}
       {menuOpen && (
-        <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
-          <div className="menu-box" onClick={e=>e.stopPropagation()}>
+        <div className="menu-overlay" onClick={() => setMenuOpen(false)}>
+          <div className="menu-box" onClick={e => e.stopPropagation()}>
             <div className="menu-title">Karty bohaterów — pierwotne opisy</div>
 
             <div className="menu-grid">
-              {CHARACTERS.map(h=>{
+              {CHARACTERS.map(h => {
                 const a = getDefaultAbilityForHero(h);
                 const nameOnly = a?.title ? (a.title.split('—')[1] || a.title).trim() : '';
                 return (
@@ -591,8 +610,8 @@ if(!ability?.id) return null;
               })}
             </div>
 
-            <div style={{textAlign:'center', marginTop:12}}>
-              <button className="btn" onClick={()=>setMenuOpen(false)}>Zamknij</button>
+            <div style={{ textAlign: 'center', marginTop: 12 }}>
+              <button className="btn" onClick={() => setMenuOpen(false)}>Zamknij</button>
             </div>
           </div>
         </div>
