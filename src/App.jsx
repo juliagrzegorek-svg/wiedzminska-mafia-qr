@@ -20,6 +20,7 @@ async function makeQR(url) {
     errorCorrectionLevel: 'M',
     color: { dark: '#000000', light: '#FFFFFF' },
   });
+} // ✔️ tu kończy się funkcja; bez dodatkowego `});`
 
 /* ---------- obrazki z fallbackami ---------- */
 function ImgSeq({ candidates, alt, style }) {
