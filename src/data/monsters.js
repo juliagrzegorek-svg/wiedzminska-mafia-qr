@@ -1,4 +1,3 @@
-// src/data/monsters.js
 // Potwory – z PIERWOTNYMI zdolnościami i obrazkami
 // ZASADA: zdolności potworów SIĘ NIE MIESZAJĄ – każdy dostaje swoją.
 
@@ -11,15 +10,6 @@ export const MONSTERS = [
     img: "/assets/monsters/strzyga.png",
     baseAbilityId: "strzyga-bite",
     baseAbilityTitle: "Strzyga — Ugryzienie",
-  },
-  {
-    id: "upior",
-    name: "Upiór",
-    role: "Potwór",
-    what: "Klątwa",
-    img: "/assets/monsters/upior.png",
-    baseAbilityId: "upior-curse",
-    baseAbilityTitle: "Upiór — Klątwa",
   },
   {
     id: "wilkolak",
