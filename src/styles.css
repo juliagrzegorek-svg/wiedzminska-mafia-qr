@@ -29,57 +29,48 @@ body{
 .app{ min-height:100%; position:relative }
 
 /* ===== START (ekran startowy) ===== */
+/* START – kafelek u góry, QR na dole z rezerwą miejsca */
 .start{
   position: relative;
   min-height: 100vh;
   display: grid;
-  place-items: center;
-  padding: 16px;
+  align-content: start;       /* góra */
+  justify-items: center;
+  padding: clamp(16px, 2vw, 24px);
+  padding-top: clamp(24px, 8vh, 80px);
+  padding-bottom: 280px;      /* rezerwujemy miejsce na QR, żeby nic nie nachodziło */
   isolation: isolate;
 }
 .start .form{ position: relative; z-index: 6; }
 
-/* Jaśniejsze tło + winieta (plik w public/ → /bg-start.png) */
-.start::before{
-  content:"";
-  position: fixed; inset: 0; z-index: -1;
-  background:
-    radial-gradient(1100px 520px at 50% 10%,
-      rgba(255,255,255,.14) 0%,
-      rgba(10,16,18,.10) 55%,
-      rgba(10,16,18,.28) 100%),
-    url("/bg-start.png") center -90px / cover no-repeat;
-  filter: brightness(1.32) contrast(1.05) saturate(1.06);
-}
-
-/* QR na dole na środku (na białym tle dla lepszego skanu) */
+/* QR na dole, środek, z bezpiecznym marginesem dla iOS */
 .start-qr{
   position: fixed;
   left: 50%;
-  bottom: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   text-align: center;
   z-index: 30;
-  pointer-events: none; /* nie blokuje formularza */
+  pointer-events: none;
 }
 .start-qr img{
   width: 220px; height: 220px;
   display:block; margin:0 auto 6px;
-  background: #fff;
-  padding: 8px;
-  border-radius: 12px;
+  background: #fff; padding: 8px; border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
-  pointer-events: auto; /* ale sam QR „klikalny” dla skanera */
+  pointer-events: auto;
 }
 .start-qr .small{ display:block; color:#cdd6d8; font-size:.85rem; }
 
-/* mobilnie lekko wyżej, plus opcjonalne zmniejszenie */
 @media (max-width: 520px){
-  .start-qr{ bottom: 72px; }
+  .start-qr{ bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .start{ padding-bottom: 300px; } /* trochę więcej miejsca na dolny pasek */
 }
 @media (max-width: 360px){
-  .start-qr img{ width: 180px; height: 180px; }
+  .start-qr img{ width:180px; height:180px; }
+  .start{ padding-bottom: 260px; }
 }
+
 
 /* formularz na szkle */
 .form{
@@ -222,12 +213,13 @@ input[type="text"]{
 }
 .typewriter{
   position:relative; z-index:2; width:min(1100px, 92vw);
-  padding:18px 22px; border-radius:16px; line-height:1.55; font-size:28px;
+  padding:18px 22px; border-radius:16px; line-height:1.55;
+  font-size: clamp(14px, 3.6vw, 22px);  /* mniejszy */
   background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.25));
   border:1px solid rgba(255,255,255,.2); box-shadow:var(--shadow);
   font-family:"Cormorant Garamond", serif;
-  text-transform:none; font-variant:normal;
 }
+
 .typewriter .cursor{
   display:inline-block; width:10px; height:1em; margin-left:4px;
   background:#fff; animation:blink 1s infinite;
