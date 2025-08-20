@@ -6,6 +6,22 @@ import { MONSTERS } from './data/monsters.js';
 import { GOOD_ABILITIES, MONSTER_ABILITIES } from './data/abilities.js';
 import { rtEnabled, upsertPlayer, subscribePlayers, getGameCode } from './realtime.js';
 import './styles.css';
+// ——— konfiguracja adresu dla QR + lepsze generowanie QR ———
+const PUBLIC_URL_KEY = 'game:public-url';
+
+function getQrBase(){
+  const saved = localStorage.getItem(PUBLIC_URL_KEY);
+  return (saved || location.origin).replace(/\/+$/,''); // bez końcowych "/"
+}
+
+async function makeQR(url){
+  return await QRCode.toDataURL(url, {
+    width: 220,
+    margin: 1,
+    errorCorrectionLevel: 'M',
+    color: { dark: '#000000', light: '#FFFFFF' } // biały spód = łatwiejsze skanowanie
+  });
+}
 
 /* ---------- obrazki z fallbackami ---------- */
 function ImgSeq({ candidates, alt, style }) {
@@ -119,6 +135,18 @@ export default function App(){
   const [qrMap,setQrMap] = useState({});
   const [qrBig,setQrBig] = useState(null);
   const [qrStart,setQrStart] = useState(null);
+// publiczny adres, którego mają używać kody QR (LAN/IP lub domena)
+const [qrBaseUrl, setQrBaseUrl] = useState(getQrBase());
+function setPublicQrUrl(){
+  const next = prompt(
+    'Publiczny URL dla QR (np. http://192.168.0.12:5173 albo https://twojadomena):',
+    qrBaseUrl
+  );
+  if(!next) return;
+  const cleaned = next.trim().replace(/\/+$/,'');
+  localStorage.setItem(PUBLIC_URL_KEY, cleaned);
+  setQrBaseUrl(cleaned);
+}
 
   // narracja
   const [showOverlay,setShowOverlay] = useState(false);
@@ -147,10 +175,22 @@ export default function App(){
   // host realtime
   useEffect(()=>{ if(!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return ()=>un&&un() },[hostMode]);
 
-  // QR start
-  useEffect(()=>{ (async()=>{ const link = `${location.origin}${location.pathname}?g=${getGameCode()}`; const data = await QRCode.toDataURL(link,{width:220,margin:1}); setQrStart(data); })().catch(()=>{}); },[]);
-  function buildLinkFor(c){ return `${location.origin}${location.pathname}?g=${getGameCode()}&pre=${c.id}` }
-  useEffect(()=>{ if(!hostMode) return; (async()=>{ const entries = await Promise.all(CHARACTERS.map(async c=>[c.id, await QRCode.toDataURL(buildLinkFor(c),{width:220,margin:1})])); setQrMap(Object.fromEntries(entries)); })().catch(()=>{}); },[hostMode]);
+ // QR start (z użyciem publicznego URL i białego tła QR)
+useEffect(()=>{ (async()=>{
+  const link = `${qrBaseUrl}${location.pathname}?g=${getGameCode()}`;
+  setQrStart(await makeQR(link));
+})().catch(()=>{}); },[qrBaseUrl]);
+
+function buildLinkFor(c){
+  return `${qrBaseUrl}${location.pathname}?g=${getGameCode()}&pre=${c.id}`;
+}
+
+useEffect(()=>{ if(!hostMode) return; (async()=>{
+  const entries = await Promise.all(
+    CHARACTERS.map(async c => [c.id, await makeQR(buildLinkFor(c))])
+  );
+  setQrMap(Object.fromEntries(entries));
+})().catch(()=>{}); },[hostMode, qrBaseUrl]);
 
   async function publish(){
     await upsertPlayer({
@@ -325,10 +365,18 @@ export default function App(){
             Panel Mistrza Gry — kod gry: {getGameCode()} {rtEnabled ? '' : '(realtime wyłączony)'}
           </div>
 
-          <div className="host-actions">
-            <button className="btn" onClick={()=>copy(`${location.origin}${location.pathname}?g=${getGameCode()}`)}>Kopiuj link do gry</button>
-            <button className="btn" onClick={newCode}>Nowy kod gry</button>
-          </div>
+        <div className="host-actions">
+  <button className="btn" onClick={()=>copy(`${qrBaseUrl}${location.pathname}?g=${getGameCode()}`)}>Kopiuj link do gry</button>
+  <button className="btn" onClick={newCode}>Nowy kod gry</button>
+  <button className="btn" onClick={setPublicQrUrl}>Ustaw URL do QR</button>
+</div>
+
+{ (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && (
+  <div className="small" style={{marginTop:6, opacity:.85}}>
+    QR z <b>localhost</b> nie działa na telefonie. Ustaw adres LAN (np. <i>http://192.168.x.x:5173</i>) albo domenę produkcyjną.
+  </div>
+)}
+
 
           <div className="host-list">
             <div className="row head">
