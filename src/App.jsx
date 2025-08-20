@@ -370,15 +370,7 @@ function triggerAlert(){
           )}
 
          {/* BOHATER */}
-<div
-  className={[
-    'card',
-    focus==='left'?'focus':'',
-    (step==='hero' || zoom==='left') ? 'centered zoom' : 'at-left',
-    (step==='hero-placed' || step==='monster' || step==='monster-placed' || step==='ability' || step==='done') ? 'placed' : ''
-  ].join(' ')}
-  ...
->
+BOHATER
 
               <div className="media">
                 <ImgSeq candidates={imageCandidates(hero)} alt={hero.name} />
@@ -407,8 +399,10 @@ function triggerAlert(){
     (step==='monster' || zoom==='center') ? 'centered zoom' : 'at-center',
     (step==='monster-placed' || step==='ability' || step==='done') ? 'placed' : ''
   ].join(' ')}
-  ...
+  onClick={onMonsterClick}
+  style={{ zIndex: (step==='monster' || zoom==='center') ? 9800 : (focus==='center' ? 1200 : 900) }}
 >
+
 
               <div className="media">
                 <ImgSeq candidates={imageCandidates(monster)} alt={monster.name} />
@@ -433,10 +427,13 @@ function triggerAlert(){
   className={[
     'card','ability', abilityClass,
     (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right',
-    (step==='done') ? 'placed' : ''
+    (step==='done') ? 'placed' : '',
+    focus==='right'?'focus':''
   ].join(' ')}
-  ...
+  onClick={onAbilityClick}
+  style={{ zIndex: (step==='ability' || abilityOpen) ? 9800 : 1300 }}
 >
+
 
               <div className="media">
                 <ImgSeq candidates={imageCandidates(abilityPortrait)} alt={abilityPortrait?.name} />
