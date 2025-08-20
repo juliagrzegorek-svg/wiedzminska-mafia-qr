@@ -1,3 +1,4 @@
+// === src/App.jsx ===
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { CHARACTERS } from './data/characters.js';
@@ -25,9 +26,18 @@ function imageCandidates(item) {
   if (!item) return [];
   const id = (item.id || '').toLowerCase();
   const hasExt = (p) => /\.(png|jpe?g|webp)$/i.test(p);
-  const bases = [item.img, `/assets/${id}`, `/assets/heroes/${id}`, `/assets/monsters/${id}`, `/assets/characters/${id}`].filter(Boolean);
+  const bases = [
+    item.img,
+    `/assets/${id}`,
+    `/assets/heroes/${id}`,
+    `/assets/monsters/${id}`,
+    `/assets/characters/${id}`,
+  ].filter(Boolean);
   const out = [];
-  for (const b of bases) out.push(hasExt(b) ? b : `${b}.png`, `${b}.jpg`, `${b}.webp`);
+  for (const b of bases) {
+    if (hasExt(b)) out.push(b);
+    else out.push(`${b}.png`, `${b}.jpg`, `${b}.webp`);
+  }
   return out;
 }
 
@@ -40,13 +50,6 @@ const isHost = () => {
 const params = new URLSearchParams(location.search);
 const presetHeroId = params.get('pre') || null;
 
-/* ---------- pomocnicze: dopasowanie płci ---------- */
-function sexMatches(character, chosen){
-  const s = (character.sex || '').toString().toUpperCase();      // w danych może być K/M/F/Male/Female…
-  if (chosen === 'K') return ['K','F','W','FEMALE'].includes(s);
-  return ['M','MALE'].includes(s);
-}
-
 /* ---------- domyślne zdolności ---------- */
 function getDefaultAbilityForHero(hero){
   if(!hero) return null;
@@ -57,18 +60,12 @@ function getDefaultAbilityForHero(hero){
 }
 function getDefaultAbilityForMonster(monster){
   if(!monster) return null;
-  // preferowana: po id
-  if (monster.baseAbilityId) {
-    const found = MONSTER_ABILITIES.find(a => a.id === monster.baseAbilityId);
-    if (found) return found;
-  }
-  // fallback: po prefiksie id potwora
-  const pref = (monster.id || '') + '-';
-  const byPrefix = MONSTER_ABILITIES.find(a => (a.id || '').startsWith(pref));
-  return byPrefix || null;
+  const id = monster.baseAbilityId;
+  if (!id) return null;
+  return MONSTER_ABILITIES.find(a => a.id === id) || null;
 }
 
-/* ---------- kto „jest na obrazku” danej zdolności ---------- */
+/* ---------- właściciel zdolności (do portretu) ---------- */
 function resolveOwnerOfAbility(abilityId){
   if(!abilityId) return null;
   const ownerHero = CHARACTERS.find(h => getDefaultAbilityForHero(h)?.id === abilityId);
@@ -78,24 +75,31 @@ function resolveOwnerOfAbility(abilityId){
   return null;
 }
 
-/* ---------- losowanie zdolności (bez mieszania potworów) ---------- */
+/* ---------- losowanie zdolności ---------- */
 function pickAbility({ hero, monster }) {
-  // POTWÓR: zawsze własna baza (zero mieszania)
+  // POTWÓR: żadnego mieszania – bierze bazową
   if (monster) {
     const base = getDefaultAbilityForMonster(monster);
     if (!base) return null;
     return { ...base, ownerType: 'monster', ownerName: monster.name };
   }
-  // BOHATER: z puli dobrych; podpis i portret = właściciel tej zdolności
+  // BOHATER: los z „good”
   if (hero) {
     const pool = GOOD_ABILITIES.filter(a => !a.onlyFor || a.onlyFor.includes(hero.id));
-    const list = pool.length ? pool : GOOD_ABILITIES;
+    const list = (pool.length ? pool : GOOD_ABILITIES);
     const ability = list[Math.floor(Math.random() * list.length)];
     const owner = resolveOwnerOfAbility(ability.id);
     const ownerName = owner?.obj?.name || hero.name;
     return { ...ability, ownerType: 'good', ownerName };
   }
   return null;
+}
+
+/* ---------- dopasowanie płci ---------- */
+function matchesGender(c, g){
+  const v = String(c.sex || '').toLowerCase();
+  if (g === 'K') return ['k','f','female','kobieta','woman'].includes(v);
+  return ['m','male','mężczyzna','man'].includes(v);
 }
 
 /* ---------- komponent ---------- */
@@ -114,7 +118,9 @@ export default function App(){
   const [abilityOpen,setAbilityOpen] = useState(false);
   const [focus,setFocus] = useState('center');
   const [zoom,setZoom]   = useState(null);
-  const [menuOpen,setMenuOpen] = useState(false);   // hamburger
+
+  // MENU
+  const [menuOpen,setMenuOpen] = useState(false);
 
   // host
   const [players,setPlayers] = useState([]);
@@ -127,14 +133,14 @@ export default function App(){
   const [showAlert,setShowAlert] = useState(false);
   const [typing,setTyping] = useState('');
   const typingTimer = useRef(null);
-
-  // (nowy, proszony tekst – bez capslocka)
-  const fullText = 'W dzisiejszym jedzeniu wykryto eliksir, po którym zdolności Waszych postaci wymieszały się. Czy Yen jest dalej lekarką a Emhyr jako sędzia nadal uniewinni przed śmiercią? Strzeżcie się Mrocznego Kręgu,  — szepczą, tną nici zaufania, sabotują. Nie wierzcie nikomu. Nawet sobie.';
+  const fullText =
+    'W dzisiejszym jedzeniu wykryto eliksir, po którym zdolności Waszych postaci wymieszały się. ' +
+    'Czy Yen jest dalej lekarką a Emhyr jako sędzia nadal uniewinni przed śmiercią? ' +
+    'Strzeżcie się Mrocznego Kręgu, — szepczą, tną nici zaufania, sabotują. Nie wierzcie nikomu. Nawet sobie.';
 
   const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, []);
   useEffect(()=>{ if(presetHero) setGender(presetHero.sex); },[presetHero]);
 
-  // persist
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name]);
   useEffect(()=>{ localStorage.setItem(LS.gender, gender) },[gender]);
   useEffect(()=>{ localStorage.setItem(LS.step, step) },[step]);
@@ -146,17 +152,10 @@ export default function App(){
   // host realtime
   useEffect(()=>{ if(!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return ()=>un&&un() },[hostMode]);
 
-  // QR start (po lewej)
-  useEffect(()=>{ (async()=>{
-      const link = `${location.origin}${location.pathname}?g=${getGameCode()}`;
-      const data = await QRCode.toDataURL(link,{width:220,margin:1});
-      setQrStart(data);
-    })().catch(()=>{}); },[]);
+  // QR start
+  useEffect(()=>{ (async()=>{ const link = `${location.origin}${location.pathname}?g=${getGameCode()}`; const data = await QRCode.toDataURL(link,{width:220,margin:1}); setQrStart(data); })().catch(()=>{}); },[]);
   function buildLinkFor(c){ return `${location.origin}${location.pathname}?g=${getGameCode()}&pre=${c.id}` }
-  useEffect(()=>{ if(!hostMode) return; (async()=>{
-      const entries = await Promise.all(CHARACTERS.map(async c=>[c.id, await QRCode.toDataURL(buildLinkFor(c),{width:220,margin:1})]));
-      setQrMap(Object.fromEntries(entries));
-    })().catch(()=>{}); },[hostMode]);
+  useEffect(()=>{ if(!hostMode) return; (async()=>{ const entries = await Promise.all(CHARACTERS.map(async c=>[c.id, await QRCode.toDataURL(buildLinkFor(c),{width:220,margin:1})])); setQrMap(Object.fromEntries(entries)); })().catch(()=>{}); },[hostMode]);
 
   async function publish(){
     await upsertPlayer({
@@ -164,34 +163,29 @@ export default function App(){
       hero_id: hero?.id || null, hero_name: hero?.name || null,
       monster_id: monster?.id || null, monster_name: monster?.name || null,
       ability_id: ability?.id || null,
-      ability_title: ability ? (`${ability.ownerName} — ${(ability.title?.split('—')?.[1] || ability.title).trim()}`) : null,
+      ability_title: ability ? (`${ability.ownerName} — ${ability.title?.split('—')?.[1]?.trim() || ability.title}`) : null,
       ability_side: ability?.ownerType || null,
       updated_at: new Date().toISOString()
     });
   }
 
-  const rand = (a)=>a[Math.floor(Math.random()*a.length)];
-
+  const randItem = (a)=>a[Math.floor(Math.random()*a.length)];
   function startGame(e){
     e.preventDefault();
     if(!name.trim()) return;
-    const pool = CHARACTERS.filter(c=>sexMatches(c, gender));
-    const drawn = presetHero || (pool.length ? rand(pool) : rand(CHARACTERS));
-    setHero(drawn);
-    setStep('hero');
-    setFocus('center');
-    setAbilityOpen(false);
+    const pool = CHARACTERS.filter(c => matchesGender(c, gender));
+    const drawn = presetHero || randItem(pool.length ? pool : CHARACTERS);
+    setHero(drawn); setStep('hero'); setFocus('center'); setAbilityOpen(false);
 
     const giveMonster = Math.random() < 0.35;
-    setMonster(giveMonster ? rand(MONSTERS) : null);
+    if(giveMonster) setMonster(randItem(MONSTERS)); else setMonster(null);
 
     setTimeout(publish, 0);
   }
 
   function onHeroClick(){
     if(step==='hero'){
-      setStep('hero-placed');           // odkładamy
-      setFocus('left');
+      setStep('hero-placed'); setFocus('left');
       if(monster) setTimeout(()=>{ setStep('monster'); setFocus('center') }, 450);
       else setTimeout(()=> triggerAlert(), 400);
       setTimeout(publish, 0);
@@ -199,16 +193,13 @@ export default function App(){
   }
   function onMonsterClick(){
     if(step==='monster'){
-      setStep('monster-placed');
-      setFocus('center');
+      setStep('monster-placed'); setFocus('center');
       setTimeout(()=> triggerAlert(), 400);
       setTimeout(publish, 0);
     } else setZoom(z=>z==='center'?null:'center');
   }
 
   function triggerAlert(){
-    // upewnij się, że karty są „odłożone” zanim pojawi się dym
-    if (monster) setStep('monster-placed'); else setStep('hero-placed');
     setShowOverlay(true); setShowAlert(true);
     setTimeout(()=>{
       setShowAlert(false); setTyping(''); let i=0;
@@ -216,21 +207,17 @@ export default function App(){
       typingTimer.current = setInterval(()=>{
         i++; setTyping(fullText.slice(0,i));
         if(i>=fullText.length) clearInterval(typingTimer.current);
-      }, 55);
-    }, 1400); // krótka pauza -> widać odkładanie kart
+      }, 45);
+    }, 2600);
   }
   function onOverlayClick(){
-    // znika dopiero po KLIKNIĘCIU i dopiero gdy tekst się „wypisał”
     if(typing.length < fullText.length) return;
-
     if(!ability){
       const picked = pickAbility({ hero, monster });
       if (picked) setAbility(picked);
     }
     setShowOverlay(false);
-    setStep('ability');
-    setFocus('right');
-    setAbilityOpen(true);
+    setStep('ability'); setFocus('right'); setAbilityOpen(true);
     setTimeout(publish, 0);
   }
 
@@ -253,6 +240,7 @@ export default function App(){
   }, [ability]);
 
   const abilityClass = ability?.ownerType === 'monster' ? 'monster' : 'good';
+
   const abilityNameOnly = (() => {
     if (!ability?.title) return '';
     const parts = ability.title.split('—');
@@ -279,6 +267,7 @@ export default function App(){
 
   return (
     <div className="app">
+
       {/* HOST */}
       {hostMode && (
         <div className="host">
@@ -334,9 +323,9 @@ export default function App(){
       {/* START */}
       {step==='start' && (
         <div className="start">
-          <div className="top-blur form">
-            <div style={{fontWeight:700, marginRight:8}}>Wpisz imię i nazwisko gracza oraz płeć:</div>
-            <form onSubmit={startGame} className="form-fields">
+          <div className="top-blur">
+            <form className="form" onSubmit={startGame}>
+              <div style={{fontWeight:700, marginRight:8}}>Wpisz imię i nazwisko gracza oraz płeć:</div>
               <input type="text" placeholder="Imię i nazwisko" value={name} onChange={e=>setName(e.target.value)} />
               <div className="gender">
                 <label><input type="radio" name="gender" value="K" checked={gender==='K'} onChange={e=>setGender(e.target.value)} /> Kobieta</label>
@@ -357,7 +346,7 @@ export default function App(){
 
       {/* STÓŁ */}
       {step!=='start' && (
-        <div className={`table ${showOverlay ? 'veiled' : ''}`}>
+        <div className="table">
           <div className="table-surface" />
 
           {(step==='ability' || step==='done') && (
@@ -370,7 +359,7 @@ export default function App(){
           {hero && (
             <div
               className={[
-                'card','hero-card',
+                'card','good',
                 focus==='left'?'focus':'',
                 (step==='hero' || zoom==='left') ? 'centered zoom' : 'at-left'
               ].join(' ')}
@@ -397,7 +386,7 @@ export default function App(){
           {monster && (
             <div
               className={[
-                'card','monster-card',
+                'card','monster',
                 focus==='center'?'focus':'',
                 (step==='monster' || zoom==='center') ? 'centered zoom' : 'at-center'
               ].join(' ')}
@@ -449,9 +438,7 @@ export default function App(){
           {showOverlay && (
             <div className="overlay" onClick={onOverlayClick}>
               <div className="smoke"></div>
-              {showAlert
-                ? <div className="alert">Ludzie uważajcie!</div>
-                : <div className="typewriter">{typing}<span className="cursor"></span></div>}
+              {showAlert ? <div className="alert">Ludzie uważajcie!</div> : <div className="typewriter">{typing}<span className="cursor"></span></div>}
             </div>
           )}
 
@@ -461,7 +448,7 @@ export default function App(){
         </div>
       )}
 
-      {/* MENU: galeria pierwotnych kart bohaterów */}
+      {/* MENU */}
       {menuOpen && (
         <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
           <div className="menu-box" onClick={e=>e.stopPropagation()}>
@@ -477,7 +464,7 @@ export default function App(){
                       <div className="mini-name">{h.name}</div>
                       <div className="mini-line"><b>Co robi?</b> {h.what || '—'}</div>
                       <div className="mini-line"><b>Zdolność:</b> {nameOnly || '—'}</div>
-                      <div className="mini-desc">{a?.description || ''}</div>
+                      {a?.description && <div className="mini-desc">{a.description}</div>}
                     </div>
                   </div>
                 )
