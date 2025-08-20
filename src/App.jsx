@@ -307,7 +307,14 @@ useEffect(()=>{ if(!hostMode) return; (async()=>{
 
   // wyliczenia do widoku
   const abilityPortrait = useMemo(()=>{
-    if(!ability?.id) return null;
+    const abilityPortraitCandidates = useMemo(()=>{
+  const base = imageCandidates(abilityPortrait);
+  if (base && base.length) return base;
+  return ability?.ownerType === 'monster'
+    ? imageCandidates(monster)
+    : imageCandidates(hero);
+}, [abilityPortrait, hero, monster, ability]);
+if(!ability?.id) return null;
     const owner = resolveOwnerOfAbility(ability.id);
     return owner?.obj || null;
   }, [ability]);
@@ -462,7 +469,8 @@ useEffect(()=>{ if(!hostMode) return; (async()=>{
               style={{ zIndex: (step==='hero' || zoom==='left') ? 9800 : (focus==='left' ? 1100 : 800) }}
             >
               <div className="media">
-                <ImgSeq candidates={imageCandidates(hero)} alt={hero.name} />
+            <ImgSeq candidates={abilityPortraitCandidates} alt={abilityPortrait?.name || ability?.ownerName} />
+
               </div>
               <div className="body ornament">
                 <div className="pretitle">Twoja postać to:</div>
