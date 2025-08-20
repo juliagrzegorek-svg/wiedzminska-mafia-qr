@@ -1,6 +1,3 @@
-// src/data/characters.js
-// Bohaterowie – z pierwotnymi mocami (id + tytuł) i obrazkami
-
 export const HERO_ORDER = [
   "ciri",
   "geralt",
@@ -10,13 +7,11 @@ export const HERO_ORDER = [
   "zoltan",
   "nenneke",
   "triss",
-  "shani",
   "fringilla",
   "margarita",
   "keira",
   "vernon",
-  "emhyr",
-  "avallach",
+  "emhyr"
 ];
 
 export const CHARACTERS = [
@@ -97,19 +92,8 @@ export const CHARACTERS = [
     role: "Bohaterka",
     what: "Czarodziejka",
     img: "/assets/heroes/triss.png",
-    // jeżeli chcesz inną pierwotną – podmień ID i tytuł
     baseAbilityId: "ciri-seer",
     baseAbilityTitle: "Triss Merigold — Jasnowidzka",
-  },
-  {
-    id: "shani",
-    name: "Shani",
-    gender: "f",
-    role: "Bohaterka",
-    what: "Lekarka",
-    img: "/assets/heroes/shani.png",
-    baseAbilityId: "yen-healer",
-    baseAbilityTitle: "Shani — Uzdrowicielka",
   },
   {
     id: "fringilla",
@@ -160,15 +144,5 @@ export const CHARACTERS = [
     img: "/assets/heroes/emhyr.png",
     baseAbilityId: "emhyr-pardon",
     baseAbilityTitle: "Emhyr — Łaska Cesarza",
-  },
-  {
-    id: "avallach",
-    name: "Avallac’h",
-    gender: "m",
-    role: "Bohater",
-    what: "Mędrzec",
-    img: "/assets/heroes/avallach.png",
-    baseAbilityId: "citizen",
-    baseAbilityTitle: "Obywatel",
   },
 ];
