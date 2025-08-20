@@ -264,3 +264,148 @@ input[type="text"]{
 .tag{ display:inline-block; width:10px; height:10px; border-radius:50%; background:#7ee5cf; margin-right:6px; vertical-align:middle }
 .tag.monster{ background:#ff9a9a }
 .muted{ color:var(--muted) }
+
+/* === START: QR na dole po lewej; formularz wyśrodkowany i niezależny === */
+.start{ position:relative; min-height:100vh; overflow:hidden; }
+.start::before{
+  content:""; position:fixed; inset:0; z-index:-1;
+  background:
+    radial-gradient(900px 420px at 50% 15%, rgba(18,61,61,.45) 0%, rgba(11,17,19,.8) 60%, rgba(8,12,13,.95) 100%),
+    url("/assets/bg-start.png") center/cover no-repeat;
+  filter:saturate(90%);
+}
+.top-blur{
+  width:min(560px, 92vw); margin:10vh auto 0;
+  padding:22px; border-radius:18px;
+  background: linear-gradient(180deg, rgba(14,32,32,.65), rgba(5,12,12,.55));
+  border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow);
+}
+.start-qr{
+  position:fixed; left:14px; bottom:14px; z-index:20;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+.start-qr img{ width:170px; height:auto; border-radius:10px; box-shadow:var(--shadow) }
+@media (max-width:480px){
+  .start-qr img{ width:140px }
+}
+
+/* === TŁO STOŁU (zawsze pod spodem) === */
+.table{ position:relative; min-height:100vh; overflow:hidden; isolation:isolate; }
+.table-surface{
+  position:fixed; inset:0; z-index:-2; pointer-events:none;
+  background:
+    radial-gradient(900px 420px at 50% 15%, rgba(18,61,61,.35) 0%, rgba(11,17,19,.82) 60%, rgba(8,12,13,.96) 100%),
+    url("/assets/bg-start.png") center/cover no-repeat;
+}
+
+/* === KARTY: układ, ramka pod obrazkiem, ornament === */
+.card{
+  position:absolute; top:50%; transform:translateY(-50%) scale(.88);
+  width:min(720px, 92vw); height:min(82vh, 820px);
+  display:flex; flex-direction:column; border-radius:22px; overflow:hidden;
+  border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow);
+  background: linear-gradient(180deg, rgba(2,8,8,.8) 52%, rgba(6,20,20,.9) 100%);
+  transition: transform .45s cubic-bezier(.22,.9,.3,1), left .45s, right .45s, bottom .45s, top .45s;
+}
+.card .media{ flex:1 1 auto; background:#0e1718 }
+.card .media img{ width:100%; height:100%; object-fit:contain; object-position:center; }
+
+.card .body{
+  padding:16px 18px 18px;
+  background:linear-gradient(180deg, rgba(8,24,24,.96) 0%, rgba(4,12,12,.96) 100%);
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.card .body h3{
+  margin:2px 0 6px; font-size:28px; line-height:1.1; font-family:"Cinzel", serif; letter-spacing:.6px;
+}
+.card .body .role{ color:var(--muted); margin-bottom:6px; font-weight:600 }
+.card .body .meta{ color:#d8e7e3; display:grid; gap:6px; font-size:16px }
+.card .body .pretitle{ color:var(--muted); font-weight:700; letter-spacing:.6px; text-transform:uppercase; font-size:14px }
+.card .body .action{ margin-top:10px }
+
+/* Delikatne złote „ornamenty” */
+.ornament{ position:relative; }
+.ornament::before, .ornament::after{
+  content:""; position:absolute; width:120px; height:16px; left:10%; border-radius:50% 50% 0 0 / 100% 100% 0 0;
+  background: radial-gradient(60px 10px at 50% 100%, rgba(0,0,0,.2), transparent),
+              linear-gradient(180deg, var(--gold), var(--gold-2));
+  filter: blur(.2px) saturate(.9); opacity:.55;
+}
+.ornament::before{ top:-10px; }
+.ornament::after{ bottom:-8px; left:auto; right:8%; transform:scale(.9) }
+
+/* Poświaty: dobrzy – niebieska, potwory – czerwona */
+.card { box-shadow: 0 6px 40px rgba(0,0,0,.35); }
+.card:not(.ability)::before{
+  content:""; position:absolute; inset:0;
+  border-radius:inherit; pointer-events:none;
+  box-shadow: 0 0 0 2px rgba(132,178,214,.18), 0 0 45px rgba(110,160,200,.22) inset;
+}
+.card .body h3{ color:#eaf3f7; }
+.card .role{ color:#b9c7cf; }
+.card.ability.good::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  box-shadow: 0 0 0 2px rgba(120,220,220,.2), 0 0 60px rgba(120,220,220,.18) inset;
+}
+.card.ability.monster::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  box-shadow: 0 0 0 2px rgba(230,90,90,.2), 0 0 60px rgba(230,90,90,.18) inset;
+}
+
+/* Pozycje */
+.at-left{ left:6vw }
+.at-center{ left:50%; transform:translate(-50%,-50%) scale(.88) }
+.at-right{ right:6vw }
+
+/* Karty odłożone na stół (minimalizacja u dołu) */
+.card.placed{ top:auto; bottom:2.4vh; transform:translateY(0) scale(.62); }
+.at-left.placed{ left:6vw; transform:translateY(0) scale(.62) rotate(-2deg); }
+.at-center.placed{ left:50%; transform:translate(-50%,0) scale(.62); }
+.at-right.placed{ right:6vw; transform:translateY(0) scale(.62) rotate(2deg); }
+
+/* Powiększenie w centrum */
+.centered.zoom{ left:50%!important; right:auto; transform:translate(-50%,-50%) scale(1.0) }
+.focus{ box-shadow: 0 0 0 1px rgba(255,255,255,.12), var(--shadow) }
+
+/* === OVERLAY: dym + komunikaty (bez capslocka) === */
+.overlay{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background: radial-gradient(1200px 600px at 50% 20%, rgba(0,0,0,.35) 0%, rgba(0,0,0,.82) 60%);
+  cursor:pointer; z-index:10010;
+}
+.smoke{ position:absolute; inset:0; background:url("/assets/smoke.png") center/cover no-repeat; opacity:.45; filter:contrast(110%) brightness(105%); }
+.alert{
+  position:relative; z-index:2; padding:18px 28px; border-radius:18px; text-align:center;
+  font-family:"Cinzel", serif; font-size: clamp(22px, 5.6vw, 48px); letter-spacing:.6px; font-weight:800; color:#fff;
+  text-transform:none;
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.25));
+  border:1px solid rgba(255,255,255,.2); box-shadow:var(--shadow);
+}
+.typewriter{
+  position:relative; z-index:2; width:min(1100px, 92vw);
+  padding:18px 22px; border-radius:18px; line-height:1.55; font-size: clamp(16px, 4.4vw, 28px);
+  text-transform:none;
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.25));
+  border:1px solid rgba(255,255,255,.2); box-shadow:var(--shadow); font-family:"Cinzel", serif;
+}
+.typewriter .cursor{ display:inline-block; width:10px; height:1em; margin-left:4px; background:#fff; animation:blink 1s infinite; }
+@keyframes blink{ 0%,49%{opacity:1} 50%,100%{opacity:0} }
+
+/* === HAMBURGER === */
+.hamburger{ position:fixed; top:14px; left:14px; z-index:12000; width:42px; height:36px; border-radius:10px; border:1px solid rgba(255,255,255,.15);
+  background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.25)); display:flex; align-items:center; justify-content:center; gap:4px; cursor:pointer; }
+.hamburger span{ display:block; width:20px; height:2px; background:#fff }
+.hamburger span:nth-child(2){ width:16px; opacity:.9 } .hamburger span:nth-child(3){ width:12px; opacity:.8 }
+
+/* === MENU: węższe karty, pełny opis ability === */
+.menu-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.7); display:flex; align-items:center; justify-content:center; z-index:11000; }
+.menu-box{ width:min(1100px, 92vw); max-height:min(86vh, 900px); overflow:auto;
+  background:linear-gradient(180deg, rgba(10,24,24,.96), rgba(6,14,14,.96));
+  border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:16px 18px 18px; box-shadow:var(--shadow); }
+.menu-title{ font-family:"Cinzel", serif; font-weight:800; letter-spacing:.8px; margin:4px 0 12px; font-size:22px; }
+.menu-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap:12px; } /* węższe */
+.mini-card{ background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.1); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+.mini-media{ height:160px; background:#0e1718 } .mini-media img{ width:100%; height:100%; object-fit:cover }
+.mini-body{ padding:10px 12px; display:grid; gap:4px }
+.mini-name{ font-weight:800; font-family:"Cinzel", serif }
+.mini-line{ color:#d8e7e3; font-size:14px }
