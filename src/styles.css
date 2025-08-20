@@ -286,3 +286,19 @@ input[type="text"]{
 .app.is-host .table-surface{
   display: none !important;
 }
+/* --- KARTA ZDOLNOŚCI: pokaż cały tekst --- */
+.card.ability .media{
+  /* mniej miejsca na obrazek, więcej na opis */
+  flex: 0 0 52%;
+}
+.card.ability .body{
+  /* jeśli tekst długi, daj przewijanie w ramce karty */
+  overflow: auto;
+}
+.card .body p{ margin: 0 0 10px; }
+
+/* na telefonie jeszcze więcej miejsca na opis */
+@media (max-width: 480px){
+  .card.ability .media{ flex: 0 0 46%; }
+  .card.ability .body{ max-height: 52vh; }
+}
