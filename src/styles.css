@@ -28,39 +28,57 @@ body{
 
 .app{ min-height:100%; position:relative }
 
-/* START */
+/* START — tło jaśniejsze */
 .start{
   position: relative;
-  z-index: 0;                 /* <— DODANE: ważne, żeby tło było pod spodem */
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 16px;
+  isolation: isolate;
 }
 .start .form{ position: relative; z-index: 6; }
 
-/* QR ma być NA DOLE na środku i nie pchać formularza */
-.start-qr{
-  position: fixed;
-  left: 50%;
-  bottom: max(24px, env(safe-area-inset-bottom) + 12px);
-  transform: translateX(-50%);
-  text-align: center;
-  z-index: 5;
-}
-.start-qr img{ width: 220px; height: 220px; display:block; margin:0 auto 6px; }
-
+/* jaśniejsze tło + delikatna winieta */
 .start::before{
   content:"";
-  position: fixed;
-  inset: 0;
-  z-index: -1;               /* tło niżej niż .start i formularz */
+  position: fixed; inset: 0; z-index: -1;
   background:
-    radial-gradient(900px 420px at 50% 15%, rgba(18,61,61,.45) 0%, rgba(11,17,19,.8) 60%, rgba(8,12,13,.95) 100%),
-    url("/assets/bg-start.png") center/cover no-repeat,
-    url("assets/bg-start.png") center/cover no-repeat;
-  filter:saturate(90%);
+    radial-gradient(1100px 520px at 50% 10%,
+      rgba(255,255,255,.12) 0%,
+      rgba(10,16,18,.10) 55%,
+      rgba(10,16,18,.30) 100%),
+    url("/bg-start.png") center -90px / cover no-repeat;
+  filter: brightness(1.22) contrast(1.06) saturate(1.05);
 }
+
+/* QR na dole pośrodku, zawsze nad treścią i na białym tle */
+.start-qr{
+  position: fixed !important;
+  left: 50% !important;
+  bottom: 24px !important;
+  top: auto !important;
+  transform: translateX(-50%) !important;
+  text-align: center;
+  z-index: 30;
+  pointer-events: none; /* nic nie blokuje formularza */
+}
+.start-qr img{
+  width: 220px; height: 220px;
+  display:block; margin:0 auto 6px;
+  background: #fff;
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  pointer-events: auto; /* ale sam QR da się kliknąć skanerem */
+}
+.start-qr .small{ display:block; color:#cdd6d8; font-size:.85rem; }
+
+/* mobilnie podnieś QR trochę wyżej, by nie nachodził na paski */
+@media (max-width: 520px){
+  .start-qr{ bottom: 72px !important; }
+}
+
 
 /* (opcjonalnie, na bardzo małych ekranach) */
 /*
