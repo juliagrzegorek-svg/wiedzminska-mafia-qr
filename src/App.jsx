@@ -648,6 +648,8 @@ const abilityDescSafe = ability?.description || '';
                       <div className="mini-name">{h.name}</div>
                       <div className="mini-line"><b>Co robi?</b> {h.what || '—'}</div>
                       <div className="mini-line"><b>Zdolność:</b> {nameOnly || '—'}</div>
+                      <div className="mini-desc">{a?.description || '—'}</div>
+
                     </div>
                   </div>
                 );
