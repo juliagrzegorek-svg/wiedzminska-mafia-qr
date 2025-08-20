@@ -471,7 +471,7 @@ BOHATER
       </div>
     )}
 
-       {/* MENU: galeria pierwotnych kart bohaterów */}
+          {/* MENU: galeria pierwotnych kart bohaterów */}
       {menuOpen && (
         <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
           <div className="menu-box" onClick={e=>e.stopPropagation()}>
