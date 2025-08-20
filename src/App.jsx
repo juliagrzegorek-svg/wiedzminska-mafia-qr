@@ -422,19 +422,18 @@ BOHATER
             </div>
           )}
 
-         {/* ZDOLNOŚĆ */}
-<div
-  className={[
-    'card','ability', abilityClass,
-    (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right',
-    (step==='done') ? 'placed' : '',
-    focus==='right'?'focus':''
-  ].join(' ')}
-  onClick={onAbilityClick}
-  style={{ zIndex: (step==='ability' || abilityOpen) ? 9800 : 1300 }}
->
-
-
+                  {/* ZDOLNOŚĆ */}
+          {ability && (
+            <div
+              className={[
+                'card', 'ability', abilityClass,
+                (step==='ability' || abilityOpen) ? 'centered zoom' : 'at-right',
+                (step==='done') ? 'placed' : '',
+                (focus==='right' ? 'focus' : '')
+              ].join(' ')}
+              onClick={onAbilityClick}
+              style={{ zIndex: (step==='ability' || abilityOpen) ? 9800 : 1300 }}
+            >
               <div className="media">
                 <ImgSeq candidates={imageCandidates(abilityPortrait)} alt={abilityPortrait?.name} />
               </div>
@@ -445,7 +444,11 @@ BOHATER
                   <p><b>Twoja aktualna zdolność:</b> {`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</p>
                   <p>{ability.description}</p>
                 </div>
-                <div className="action"><button type="button">{step==='ability' ? 'Odłóż kartę' : (abilityPosClass.includes('centered') ? 'Schowaj' : 'Pokaż')}</button></div>
+                <div className="action">
+                  <button type="button">
+                    {step==='ability' ? 'Odłóż kartę na stół' : (abilityOpen ? 'Schowaj' : 'Pokaż')}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -460,10 +463,11 @@ BOHATER
             </div>
           )}
 
+          {/* RESET */}
           <div style={{ position:'absolute', top:12, right:12, opacity:.7, fontSize:12 }}>
             <button onClick={resetAll} className="btn" style={{padding:'6px 10px'}}>RESET</button>
           </div>
-        </div>
+        </div> {/* .table */}
       )}
 
       {/* MENU: galeria pierwotnych kart bohaterów */}
@@ -477,12 +481,13 @@ BOHATER
                 const nameOnly = a?.title ? (a.title.split('—')[1] || a.title).trim() : '';
                 return (
                   <div className="mini-card" key={h.id}>
-                    <div className="mini-media"><ImgSeq candidates={imageCandidates(h)} alt={h.name}/></div>
+                    <div className="mini-media">
+                      <ImgSeq candidates={imageCandidates(h)} alt={h.name}/>
+                    </div>
                     <div className="mini-body">
                       <div className="mini-name">{h.name}</div>
                       <div className="mini-line"><b>Co robi?</b> {h.what || '—'}</div>
                       <div className="mini-line"><b>Zdolność:</b> {nameOnly || '—'}</div>
-                      {a?.description && <div className="mini-desc">{a.description}</div>}
                     </div>
                   </div>
                 )
@@ -495,6 +500,6 @@ BOHATER
         </div>
       )}
 
-    </div>
+    </div> {/* .app */}
   );
 }
