@@ -206,32 +206,26 @@ useEffect(()=>{ if(!hostMode) return; (async()=>{
   const randItem = (a)=>a[Math.floor(Math.random()*a.length)];
 
   /* ---------- START GAME (NAPRAWIONE) ---------- */
-  function startGame(e){
+ function startGame(e){
   e.preventDefault();
   if (!name.trim()) return;
 
-  // zawsze dopasuj bohatera dokładnie do wybranej płci
+  // losuj tylko z wybranej płci
   const pickByGender = (g) => {
     const pool = CHARACTERS.filter(c => c.sex === g);
-    return pool.length ? pool[Math.floor(Math.random()*pool.length)] : null;
+    return pool[Math.floor(Math.random() * pool.length)];
   };
 
-  let pickedHero = hero;
+  let pickedHero = null;
 
-  // preset z QR tylko jeśli pasuje płcią do wyboru gracza
-  if (!pickedHero && presetHero && presetHero.sex === gender) {
-    pickedHero = presetHero;
-  }
+  // preset z QR tylko jeśli pasuje płcią
+  if (presetHero && presetHero.sex === gender) pickedHero = presetHero;
+  if (!pickedHero) pickedHero = pickByGender(gender);
 
-  // jeśli nadal brak — losuj z tej samej płci; ostateczny fallback to jakikolwiek z sex ustawionym
-  if (!pickedHero) {
-    pickedHero = pickByGender(gender) || (CHARACTERS.find(c=>c.sex) || CHARACTERS[0]);
-  }
-
-  // potwór tylko gdy włączono parametrem (?m=1)
+  // opcjonalny potwór (?m=1)
   let pickedMonster = null;
   if (withMonsters) {
-    pickedMonster = monster || MONSTERS[Math.floor(Math.random()*MONSTERS.length)];
+    pickedMonster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
   }
 
   setAbility(null);
@@ -243,7 +237,6 @@ useEffect(()=>{ if(!hostMode) return; (async()=>{
 
   setTimeout(publish, 0);
 }
-
 
   function onHeroClick(){
     if(step==='hero'){
