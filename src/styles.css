@@ -29,19 +29,32 @@ body{
 .app{ min-height:100%; position:relative }
 
 /* ===== START (ekran startowy) ===== */
-/* START – kafelek u góry, QR na dole z rezerwą miejsca */
+/* kafelek u góry, QR na dole z rezerwą miejsca */
 .start{
   position: relative;
   min-height: 100vh;
   display: grid;
-  align-content: start;       /* góra */
+  align-content: start;
   justify-items: center;
   padding: clamp(16px, 2vw, 24px);
   padding-top: clamp(24px, 8vh, 80px);
-  padding-bottom: 280px;      /* rezerwujemy miejsce na QR, żeby nic nie nachodziło */
+  padding-bottom: 280px; /* rezerwujemy miejsce na QR, żeby nic nie nachodziło */
   isolation: isolate;
 }
 .start .form{ position: relative; z-index: 6; }
+
+/* JAŚNIEJSZE TŁO STARTU — plik w public/assets/bg-start.png */
+.start::before{
+  content:"";
+  position: fixed; inset: 0; z-index: -1;
+  background:
+    radial-gradient(1100px 520px at 50% 10%,
+      rgba(255,255,255,.14) 0%,
+      rgba(10,16,18,.10) 55%,
+      rgba(10,16,18,.28) 100%),
+    url("/assets/bg-start.png") center -90px / cover no-repeat;
+  filter: brightness(1.32) contrast(1.05) saturate(1.06);
+}
 
 /* QR na dole, środek, z bezpiecznym marginesem dla iOS */
 .start-qr{
@@ -64,13 +77,12 @@ body{
 
 @media (max-width: 520px){
   .start-qr{ bottom: calc(72px + env(safe-area-inset-bottom)); }
-  .start{ padding-bottom: 300px; } /* trochę więcej miejsca na dolny pasek */
+  .start{ padding-bottom: 300px; }
 }
 @media (max-width: 360px){
   .start-qr img{ width:180px; height:180px; }
   .start{ padding-bottom: 260px; }
 }
-
 
 /* formularz na szkle */
 .form{
@@ -105,7 +117,7 @@ input[type="text"]{
 .table{ position:relative; min-height:100vh; overflow:hidden; isolation:isolate; }
 .table-surface{
   position:fixed; inset:0; z-index:-2; pointer-events:none;
-   background:
+  background:
     radial-gradient(900px 420px at 50% 15%,
       rgba(18,61,61,.45) 0%,
       rgba(11,17,19,.82) 60%,
@@ -165,18 +177,26 @@ input[type="text"]{
 .at-center{ left:50%; transform:translate(-50%,-50%) scale(.88) }
 .at-right{ right:6vw; left:auto; transform:translateY(-50%) scale(.88) }
 
-/* Karty „leżą” na dole stołu */
+/* Karty „odłożone” na stół – mniejsze i OBOK SIEBIE */
 .laid-left{
-  left:8vw; right:auto; bottom:22px; top:auto;
-  transform:translate(0,0) scale(.78) rotate(-2deg);
+  left:6vw; right:auto; bottom:14px; top:auto;
+  transform:translate(0,0) scale(.62) rotate(-2deg);
 }
 .laid-center{
-  left:50%; right:auto; bottom:22px; top:auto;
-  transform:translate(-50%,0) scale(.78);
+  left:50%; right:auto; bottom:14px; top:auto;
+  transform:translate(-50%,0) scale(.62);
 }
 .laid-right{
-  right:8vw; left:auto; bottom:22px; top:auto;
-  transform:translate(0,0) scale(.78) rotate(2deg);
+  right:6vw; left:auto; bottom:14px; top:auto;
+  transform:translate(0,0) scale(.62) rotate(2deg);
+}
+
+/* mobilnie jeszcze ciut mniejsze, dalej obok siebie */
+@media (max-width: 480px){
+  .centered.zoom{ transform:translate(-50%,-50%) scale(.96); }
+  .laid-left{  transform:translate(0,0) scale(.58) rotate(-2deg); }
+  .laid-center{transform:translate(-50%,0) scale(.58); }
+  .laid-right{ transform:translate(0,0) scale(.58) rotate(2deg); }
 }
 
 .centered.zoom{ left:50%!important; right:auto; transform:translate(-50%,-50%) scale(1.0); z-index:9999; }
@@ -185,13 +205,6 @@ input[type="text"]{
 /* ability coloring */
 .card.ability.good .body h3{ color:#e6f7f3 }
 .card.ability.monster .body h3{ color:#ffd9d9 }
-
-/* mobilne zmniejszenie, żeby nie ucinało przycisków */
-@media (max-width: 480px){
-  .centered.zoom{ transform:translate(-50%,-50%) scale(.96); }
-  .laid-left, .laid-center, .laid-right{ transform:translate(0,0) scale(.72); }
-  .laid-center{ transform:translate(-50%,0) scale(.72); }
-}
 
 /* ===== OVERLAY (dym + message) ===== */
 .overlay{
@@ -219,7 +232,6 @@ input[type="text"]{
   border:1px solid rgba(255,255,255,.2); box-shadow:var(--shadow);
   font-family:"Cormorant Garamond", serif;
 }
-
 .typewriter .cursor{
   display:inline-block; width:10px; height:1em; margin-left:4px;
   background:#fff; animation:blink 1s infinite;
