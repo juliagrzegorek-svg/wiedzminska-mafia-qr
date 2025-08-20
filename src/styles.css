@@ -1,32 +1,27 @@
+/* === src/styles.css === */
+
 /* Wiedźmińskie fonty */
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cormorant+Garamond:wght@400;600;700&display=swap');
 
 :root{
-  --bg:#0b1113;
-  --fg:#e8f2ee;
-  --muted:#a7b8b3;
-  --glass:rgba(8, 20, 22, .65);
-  --gold:#d7b46a;
-  --gold-2:#a68944;
-  --accent:#48b5b5;
-  --shadow:0 30px 60px rgba(0,0,0,.45), 0 6px 18px rgba(0,0,0,.35);
-
-  --glow-good: 0 0 0 1px rgba(134,239,240,.25), 0 0 30px rgba(45,212,191,.35);
-  --glow-mon:  0 0 0 1px rgba(239,68,68,.25),  0 0 30px rgba(239,68,68,.35);
+  --bg:#0b1113; --fg:#e8f2ee; --muted:#a7b8b3;
+  --glass: rgba(8,20,22,.65);
+  --gold:#d7b46a; --gold-2:#a68944;
+  --shadow: 0 30px 60px rgba(0,0,0,.45), 0 6px 18px rgba(0,0,0,.35);
 }
 
-*{ box-sizing:border-box }
-html,body,#root{ height:100% }
+*{box-sizing:border-box}
+html,body,#root{height:100%}
 body{
   margin:0;
   background: radial-gradient(1200px 600px at 50% -20%, #183234 0%, var(--bg) 60%, #070b0c 100%);
   color:var(--fg);
-  font-family:"Cormorant Garamond", serif;
+  font-family: "Cormorant Garamond", serif;
   letter-spacing:.2px;
 }
-.app{ min-height:100% }
+.app{min-height:100%}
 
-/* ---------- Buttons / inputs ---------- */
+/* ===== Buttons / inputs ===== */
 .btn{
   appearance:none;
   border:1px solid rgba(255,255,255,.12);
@@ -47,13 +42,12 @@ input[type="text"]{
   background:rgba(255,255,255,.04); color:var(--fg);
   outline:none; font-size:16px;
 }
-.gender{ display:flex; align-items:center; gap:14px; color:var(--muted); font-weight:600; }
+.gender{ display:flex; align-items:center; gap:14px; color:var(--muted); font-weight:600 }
 
-/* ---------- START ---------- */
-.start{ position:relative; min-height:100vh; overflow:hidden; }
+/* ===== START ===== */
+.start{ position:relative; min-height:100vh; overflow:hidden }
 .start::before{
-  content:"";
-  position:fixed; inset:0; z-index:-1;
+  content:""; position:fixed; inset:0; z-index:-1;
   background:
     radial-gradient(900px 420px at 50% 15%, rgba(18,61,61,.45) 0%, rgba(11,17,19,.8) 60%, rgba(8,12,13,.95) 100%),
     url("/assets/bg-start.png") center/cover no-repeat,
@@ -61,53 +55,47 @@ input[type="text"]{
   filter:saturate(90%);
 }
 .top-blur{
-  position:relative; width:min(560px, 92vw); margin:8vh auto 0;
+  width:min(560px, 92vw); margin:10vh auto 0;
   padding:22px; border-radius:18px;
   background: linear-gradient(180deg, rgba(14,32,32,.65), rgba(5,12,12,.55));
   border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow);
 }
-.form-fields{ display:flex; flex-direction:column; gap:12px; }
+.form{ display:flex; flex-direction:column; gap:12px }
+.form .btn{ align-self:flex-start }
+
+/* QR – desktop po lewej, mobile pod formularzem */
+.start-qr{
+  position:fixed; left:22px; top:22px;
+  display:flex; flex-direction:column; align-items:center; gap:6px; opacity:.95;
+}
+.start-qr img{ width:180px; height:auto; border-radius:10px; box-shadow:var(--shadow) }
 .small{ font-size:12px; color:var(--muted) }
 
-/* QR po lewej */
-.start-qr{
-  position:fixed; left:14px; top:14px; display:flex; flex-direction:column; align-items:center;
-  gap:6px; opacity:.95; z-index:20; user-select:none;
-}
-.start-qr img{ width:190px; height:190px; border-radius:10px; box-shadow:var(--shadow) }
-@media (min-width: 481px){ .top-blur{ margin-left:230px } }
-@media (max-width: 480px){
-  .start-qr img{ width:150px; height:150px }
-  .top-blur{ margin:8vh 12px 0 170px }
+@media (max-width:700px){
+  .start-qr{ position:static; width:auto; margin:14px auto 0 }
+  .start-qr img{ width:160px }
+  .top-blur{ margin:10vh auto 0 }
 }
 
-/* ---------- STÓŁ / TAPETA ---------- */
-.table{ position:relative; min-height:100vh; overflow:hidden; isolation:isolate; }
+/* ===== TABLE / BACKGROUND ===== */
+.table{ position:relative; min-height:100vh; overflow:hidden; isolation:isolate }
 .table-surface{
   position:fixed; inset:0;
   background:
     radial-gradient(900px 420px at 50% 15%, rgba(18,61,61,.45) 0%, rgba(11,17,19,.8) 60%, rgba(8,12,13,.95) 100%),
     url("/assets/bg-start.png") center/cover no-repeat;
-  filter:saturate(90%);
-  z-index:-2;
-  pointer-events:none;
+  filter:saturate(90%); z-index:-2; pointer-events:none;
 }
 
-/* w czasie dymu: karty mniejsze i nieklikalne */
-.table.veiled .card{
-  filter: blur(0.5px) brightness(.85);
-  transform: translateY(-50%) scale(.72) !important;
-  pointer-events:none;
-}
-
-/* ---------- KARTY ---------- */
+/* ===== CARDS ===== */
 .card{
-  position:absolute; top:50%; transform:translateY(-50%) scale(.78);
-  width:min(720px, 92vw); height:min(80vh, 820px);
+  position:absolute; top:50%; transform:translateY(-50%) scale(.88);
+  width:min(720px, 92vw); height:min(82vh, 820px);
   display:flex; flex-direction:column; border-radius:22px;
   overflow:hidden; border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow);
   background: linear-gradient(180deg, rgba(2,8,8,.8) 52%, rgba(6,20,20,.9) 100%);
   transition: transform .45s cubic-bezier(.22,.9,.3,1), left .45s, right .45s;
+  z-index:10;
 }
 .card .media{ flex:1 1 auto; background:#0e1718 }
 .card .media img{ width:100%; height:100%; object-fit:contain }
@@ -132,7 +120,7 @@ input[type="text"]{
 }
 
 /* Delikatne złote „ornamenty” */
-.ornament{ position:relative; }
+.ornament{ position:relative }
 .ornament::before, .ornament::after{
   content:""; position:absolute; width:120px; height:16px; left:10%; border-radius:50% 50% 0 0 / 100% 100% 0 0;
   background: radial-gradient(60px 10px at 50% 100%, rgba(0,0,0,.2), transparent),
@@ -140,27 +128,43 @@ input[type="text"]{
   filter: blur(.2px) saturate(.9);
   opacity:.55;
 }
-.ornament::before{ top:-10px; }
+.ornament::before{ top:-10px }
 .ornament::after{ bottom:-8px; left:auto; right:8%; transform:scale(.9) }
 
-/* pozycje */
-.at-left{ left:6vw }
-.at-center{ left:50%; transform:translate(-50%,-50%) scale(.78) }
-.at-right{ right:6vw }
+/* Pozycje (stół) */
+.at-left{ left:10vw; transform:translateY(-50%) scale(.74) rotate(-4deg) }
+.at-center{ left:50%; transform:translate(-50%,-50%) scale(.74) rotate(3deg) }
+.at-right{ right:8vw }
+
 .centered.zoom{ left:50%!important; right:auto; transform:translate(-50%,-50%) scale(1.0) }
 .focus{ box-shadow: 0 0 0 1px rgba(255,255,255,.12), var(--shadow) }
 
-/* kolorowe „aury” */
-.hero-card.focus{ box-shadow: var(--glow-good), var(--shadow) }
-.monster-card.focus{ box-shadow: var(--glow-mon), var(--shadow) }
+/* Poświata: dobrzy/monstra */
+.card.good.focus, .card.good.centered{
+  box-shadow: 0 0 0 1px rgba(120,200,255,.25), 0 0 40px rgba(80,160,255,.28), var(--shadow);
+}
+.card.monster.focus, .card.monster.centered{
+  box-shadow: 0 0 0 1px rgba(255,120,120,.25), 0 0 40px rgba(255,90,90,.28), var(--shadow);
+}
+
+/* Ability – tylko kolor nagłówka */
 .card.ability.good .body h3{ color:#e6f7f3 }
 .card.ability.monster .body h3{ color:#ffd9d9 }
 
-/* ---------- OVERLAY ---------- */
+/* Mobile: mniejsze karty i tekst */
+@media (max-width:700px){
+  .card{ width:92vw; height:76vh; transform:translateY(-50%) scale(.84) }
+  .centered.zoom{ transform:translate(-50%,-50%) scale(.96) }
+  .card .body{ padding:12px 14px 14px }
+  .card .body h3{ font-size:22px }
+  .card .body .meta{ font-size:14px }
+}
+
+/* ===== OVERLAY ===== */
 .overlay{
   position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-  background: radial-gradient(1200px 600px at 50% 20%, rgba(0,0,0,.35) 0%, rgba(0,0,0,.8) 60%);
-  cursor:pointer; z-index:10010;
+  background: rgba(0,0,0,.75);
+  cursor:pointer; z-index:10020;
 }
 .smoke{
   position:absolute; inset:0;
@@ -169,22 +173,26 @@ input[type="text"]{
 }
 .alert{
   position:relative; z-index:2; padding:18px 28px; border-radius:18px; text-align:center;
-  font-family:"Cinzel", serif; font-size:46px; letter-spacing:.6px; font-weight:800; color:#fff;
-  text-transform:none;                      /* bez capslocka */
+  font-family:"Cinzel", serif; font-size:44px; letter-spacing:.6px; font-weight:800; color:#fff;
   background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.25));
   border:1px solid rgba(255,255,255,.2); box-shadow:var(--shadow);
+  text-transform:none;
 }
 .typewriter{
   position:relative; z-index:2; width:min(1200px, 92vw);
-  padding:20px 24px; border-radius:18px; line-height:1.6; font-size:22px;
+  padding:20px 24px; border-radius:18px; line-height:1.6; font-size:28px;
   background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.25));
   border:1px solid rgba(255,255,255,.2); box-shadow:var(--shadow);
-  font-family:"Cinzel", serif; text-transform:none;
+  font-family:"Cinzel", serif;
 }
-.typewriter .cursor{ display:inline-block; width:10px; height:1em; margin-left:4px; background:#fff; animation:blink 1s infinite; }
+.typewriter .cursor{ display:inline-block; width:10px; height:1em; margin-left:4px; background:#fff; animation:blink 1s infinite }
 @keyframes blink{ 0%,49%{opacity:1} 50%,100%{opacity:0} }
+@media (max-width:700px){
+  .alert{ font-size:34px; padding:14px 20px }
+  .typewriter{ font-size:22px }
+}
 
-/* ---------- HAMBURGER ---------- */
+/* ===== HAMBURGER ===== */
 .hamburger{
   position:fixed; top:14px; left:14px; z-index:12000;
   width:42px; height:36px; border-radius:10px; border:1px solid rgba(255,255,255,.15);
@@ -195,14 +203,13 @@ input[type="text"]{
 .hamburger span:nth-child(2){ width:16px; opacity:.9 }
 .hamburger span:nth-child(3){ width:12px; opacity:.8 }
 
-/* ---------- MENU ---------- */
+/* ===== MENU ===== */
 .menu-overlay{
   position:fixed; inset:0; background:rgba(0,0,0,.7);
   display:flex; align-items:center; justify-content:center; z-index:11000;
 }
 .menu-box{
-  width:min(960px, 90vw);                 /* węższe – łatwiej kliknąć poza kartą */
-  max-height:min(86vh, 900px); overflow:auto;
+  width:min(980px, 92vw); max-height:min(86vh, 900px); overflow:auto;
   background:linear-gradient(180deg, rgba(10,24,24,.96), rgba(6,14,14,.96));
   border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:16px 18px 18px; box-shadow:var(--shadow);
 }
@@ -210,7 +217,8 @@ input[type="text"]{
   font-family:"Cinzel", serif; font-weight:800; letter-spacing:.8px; margin:4px 0 12px; font-size:22px;
 }
 .menu-grid{
-  display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:12px;
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap:12px;
+  max-width: 900px; margin: 0 auto;
 }
 .mini-card{
   background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.1);
@@ -221,10 +229,10 @@ input[type="text"]{
 .mini-body{ padding:10px 12px; display:grid; gap:4px }
 .mini-name{ font-weight:800; font-family:"Cinzel", serif }
 .mini-line{ color:#d8e7e3; font-size:14px }
-.mini-desc{ color:#cfe4df; font-size:13px; opacity:.9 }
+.mini-desc{ color:#cfe9e4; font-size:13px; margin-top:4px }
 
-/* ---------- HOST skrót ---------- */
-.host{ padding:16px; }
+/* ===== HOST (skrót) ===== */
+.host{ padding:16px }
 .host-header{ font-weight:800; font-family:"Cinzel",serif; margin-bottom:8px }
 .host-actions{ display:flex; gap:8px; margin-bottom:12px }
 .host-qr{ display:grid; grid-template-columns:repeat(auto-fill, 140px); gap:10px }
