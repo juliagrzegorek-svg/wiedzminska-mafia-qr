@@ -471,7 +471,7 @@ BOHATER
       </div>
     )}
 
-      {/* MENU: galeria pierwotnych kart bohaterów */}
+            {/* MENU: galeria pierwotnych kart bohaterów */}
       {menuOpen && (
         <div className="menu-overlay" onClick={()=>setMenuOpen(false)}>
           <div className="menu-box" onClick={e=>e.stopPropagation()}>
@@ -482,16 +482,14 @@ BOHATER
                 const nameOnly = a?.title ? (a.title.split('—')[1] || a.title).trim() : '';
                 return (
                   <div className="mini-card" key={h.id}>
-                    <div className="mini-media">
-                      <ImgSeq candidates={imageCandidates(h)} alt={h.name}/>
-                    </div>
+                    <div className="mini-media"><ImgSeq candidates={imageCandidates(h)} alt={h.name}/></div>
                     <div className="mini-body">
                       <div className="mini-name">{h.name}</div>
                       <div className="mini-line"><b>Co robi?</b> {h.what || '—'}</div>
                       <div className="mini-line"><b>Zdolność:</b> {nameOnly || '—'}</div>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
             <div style={{textAlign:'center', marginTop:12}}>
@@ -500,12 +498,6 @@ BOHATER
           </div>
         </div>
       )}
-
-
--      </div> {/* .app */}
-+      </div>
--    );
--  }
-+    );
-+}
-
+    </div>
+  );
+}
