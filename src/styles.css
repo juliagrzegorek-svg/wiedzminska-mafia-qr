@@ -105,12 +105,12 @@ input[type="text"]{
 .table{ position:relative; min-height:100vh; overflow:hidden; isolation:isolate; }
 .table-surface{
   position:fixed; inset:0; z-index:-2; pointer-events:none;
-  background:
+   background:
     radial-gradient(900px 420px at 50% 15%,
       rgba(18,61,61,.45) 0%,
       rgba(11,17,19,.82) 60%,
       rgba(8,12,13,.96) 100%),
-    url("/bg-start.png") center/cover no-repeat; /* ten sam plik co na starcie */
+    url("/assets/bg-start.png") center/cover no-repeat;
   filter: brightness(1.05) saturate(.95);
   opacity:.60;
 }
