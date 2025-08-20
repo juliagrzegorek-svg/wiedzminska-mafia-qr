@@ -275,3 +275,14 @@ input[type="text"]{
 .mini-name{ font-weight:800; font-family:"Cinzel", serif }
 .mini-line{ color:#d8e7e3; font-size:14px }
 .mini-desc{ color:#cfe3de; font-size:13px; opacity:.95 }
+/* ===== WYŁĄCZANIE TŁA W TRYBIE HOSTA ===== */
+
+/* Start: pseudo-element z tapetą */
+.start.no-bg::before{
+  content: none !important;
+}
+
+/* Stół: warstwa z tapetą (dla pewności, choć i tak warunkowo nie renderujemy) */
+.app.is-host .table-surface{
+  display: none !important;
+}
