@@ -229,32 +229,39 @@ export default function App() {
   const randItem = (a) => a[Math.floor(Math.random() * a.length)];
 
   /* ---------- START GAME ---------- */
-  function startGame(e) {
-    e.preventDefault();
-    if (!name.trim()) return;
+ function startGame(e){
+  e.preventDefault();
+  if (!name.trim()) return;
 
-    // losowanie tylko z wybranej płci (fallback: cała pula)
-    const pickByGender = (g) => {
-      const pool = CHARACTERS.filter((c) => c.sex === g);
-      const list = pool.length ? pool : CHARACTERS;
-      return list[Math.floor(Math.random() * list.length)];
-    };
+  // Mapowanie płci z formularza (K/M) -> na dane ('f'/'m')
+  const g = (gender === 'K') ? 'f' : 'm';
 
-    let pickedHero = null;
-    if (presetHero && presetHero.sex === gender) pickedHero = presetHero;
-    if (!pickedHero) pickedHero = pickByGender(gender);
+  // 1) preset z QR tylko jeśli pasuje płcią
+  let pickedHero = (presetHero && presetHero.gender === g) ? presetHero : null;
 
-    let pickedMonster = null;
-    if (withMonsters) pickedMonster = randItem(MONSTERS);
-
-    setAbility(null);
-    setHero(pickedHero);
-    setMonster(pickedMonster);
-    setStep('hero');
-    setFocus('left');
-    setAbilityOpen(false);
-    setTimeout(publish, 0);
+  // 2) albo los z puli tej samej płci
+  if (!pickedHero) {
+    const pool = CHARACTERS.filter(c => c.gender === g);
+    pickedHero = pool[Math.floor(Math.random() * pool.length)];
   }
+
+  // 3) opcjonalny potwór (?m=1)
+  let pickedMonster = null;
+  if (withMonsters) {
+    pickedMonster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+  }
+
+  // 4) stan
+  setAbility(null);
+  setHero(pickedHero);
+  setMonster(pickedMonster);
+  setStep('hero');
+  setFocus('left');
+  setAbilityOpen(false);
+
+  setTimeout(publish, 0);
+}
+
 
   function onHeroClick() {
     if (step === 'hero') {
@@ -324,34 +331,42 @@ export default function App() {
     setTimeout(publish, 0);
   }
 
-  // wyliczenia do widoku
-  const abilityPortrait = useMemo(() => {
-    if (!ability?.id) return null;
-    const owner = resolveOwnerOfAbility(ability.id);
-    return owner?.obj || null;
-  }, [ability]);
+// wyliczenia do widoku
+const abilityOwnerForPortrait = useMemo(() => {
+  if (!ability) return null;
+  // spróbuj znaleźć „właściciela” po domyślnej zdolności
+  const owner = resolveOwnerOfAbility(ability.id);
+  if (owner?.obj) return owner.obj;
+  // fallback: jeśli potwór – pokaż potwora, inaczej bohatera
+  return ability.ownerType === 'monster' ? monster : hero;
+}, [ability, hero, monster]);
 
-  const abilityClass = ability?.ownerType === 'monster' ? 'monster' : 'good';
+const abilityPortraitCandidates = useMemo(() => {
+  return imageCandidates(abilityOwnerForPortrait);
+}, [abilityOwnerForPortrait]);
 
-  const abilityNameOnly = (() => {
-    if (!ability?.title) return '';
-    const parts = ability.title.split('—');
-    return (parts[1] || parts[0] || '').trim();
-  })();
+const abilityClass = ability?.ownerType === 'monster' ? 'monster' : 'good';
 
-  const heroDefaultAbility = getDefaultAbilityForHero(hero);
-  const heroDefaultNameOnly = (() => {
-    if (!heroDefaultAbility?.title) return '';
-    const parts = heroDefaultAbility.title.split('—');
-    return (parts[1] || parts[0] || '').trim();
-  })();
+const abilityNameOnly = (() => {
+  if (!ability?.title) return '';
+  const parts = ability.title.split('—');
+  return (parts[1] || parts[0] || '').trim();
+})();
 
-  const monsterDefaultAbility = getDefaultAbilityForMonster(monster);
-  const monsterDefaultNameOnly = (() => {
-    if (!monsterDefaultAbility?.title) return '';
-    const parts = monsterDefaultAbility.title.split('—');
-    return (parts[1] || parts[0] || '').trim();
-  })();
+const heroDefaultAbility = getDefaultAbilityForHero(hero);
+const heroDefaultNameOnly = (() => {
+  if (!heroDefaultAbility?.title) return '';
+  const parts = heroDefaultAbility.title.split('—');
+  return (parts[1] || parts[0] || '').trim();
+})();
+
+const monsterDefaultAbility = getDefaultAbilityForMonster(monster);
+const monsterDefaultNameOnly = (() => {
+  if (!monsterDefaultAbility?.title) return '';
+  const parts = monsterDefaultAbility.title.split('—');
+  return (parts[1] || parts[0] || '').trim();
+})();
+
 
   function newCode() { localStorage.removeItem('game:code'); location.reload(); }
   async function copy(t) { try { await navigator.clipboard.writeText(t); } catch {} }
@@ -478,14 +493,15 @@ export default function App() {
               onClick={onHeroClick}
               style={{ zIndex: (step === 'hero' || zoom === 'left') ? 9800 : (focus === 'left' ? 1100 : 800) }}
             >
-              <div className="media">
-                {/* ← tu WRACAMY do poprawnej grafiki bohatera */}
-                <ImgSeq candidates={imageCandidates(hero)} alt={hero.name} />
-              </div>
+             <div className="media">
+  <ImgSeq candidates={imageCandidates(hero)} alt={hero?.name} />
+</div>
+
               <div className="body ornament">
                 <div className="pretitle">Twoja postać to:</div>
                 <h3>{hero.name}</h3>
-                <div className="role">Bohater{hero.sex === 'K' ? 'ka' : ''}</div>
+                <div className="role">{hero.gender === 'f' ? 'Bohaterka' : 'Bohater'}</div>
+
                 <div className="meta">
                   <div><b>Co robi?</b> {hero.what}</div>
                   <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
@@ -540,18 +556,13 @@ export default function App() {
               onClick={onAbilityClick}
               style={{ zIndex: (step === 'ability' || abilityOpen) ? 9800 : 1300 }}
             >
-              <div className="media">
-                {/* portret właściciela zdolności z fallbackiem */}
-                <ImgSeq
-                  candidates={
-                    imageCandidates(
-                      abilityPortrait ||
-                      (ability?.ownerType === 'monster' ? monster : hero)
-                    )
-                  }
-                  alt={abilityPortrait?.name || ability?.ownerName}
-                />
-              </div>
+            <div className="media">
+  <ImgSeq
+    candidates={abilityPortraitCandidates}
+    alt={abilityOwnerForPortrait?.name || ability?.ownerName}
+  />
+</div>
+
               <div className="body ornament">
                 <h3>{`Zdolność: ${ability.ownerName} — ${abilityNameOnly}`}</h3>
                 <div className="role">Karta zdolności</div>
