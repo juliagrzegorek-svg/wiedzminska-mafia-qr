@@ -465,10 +465,10 @@ BOHATER
 
           {/* RESET */}
           <div style={{ position:'absolute', top:12, right:12, opacity:.7, fontSize:12 }}>
-            <button onClick={resetAll} className="btn" style={{padding:'6px 10px'}}>RESET</button>
-          </div>
-        </div> {/* .table */}
-      )}
+                     <button onClick={resetAll} className="btn" style={{padding:'6px 10px'}}>RESET</button>
+        </div>
+      </div> {/* .table */}
+    )}
 
       {/* MENU: galeria pierwotnych kart bohaterów */}
       {menuOpen && (
