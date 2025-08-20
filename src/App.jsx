@@ -161,7 +161,6 @@ function setPublicQrUrl(){
     'Nie wierzcie nikomu. Nawet sobie.';
 
   const presetHero = useMemo(()=> CHARACTERS.find(c=>c.id===presetHeroId) || null, []);
-  useEffect(()=>{ if(presetHero) setGender(presetHero.sex); },[presetHero]);
 
   // persist
   useEffect(()=>{ localStorage.setItem(LS.name, name) },[name]);
@@ -208,37 +207,43 @@ useEffect(()=>{ if(!hostMode) return; (async()=>{
 
   /* ---------- START GAME (NAPRAWIONE) ---------- */
   function startGame(e){
-    e.preventDefault();
-    if (!name.trim()) return;
+  e.preventDefault();
+  if (!name.trim()) return;
 
-    // 1) wybór bohatera (preset z QR > wg płci > losowo z całej puli)
-    let pickedHero = presetHero || hero;
-    if (!pickedHero) {
-      const poolBySex = CHARACTERS.filter(c => !c.sex || c.sex === gender);
-      pickedHero = poolBySex.length ? randItem(poolBySex) : randItem(CHARACTERS);
-    }
+  // zawsze dopasuj bohatera dokładnie do wybranej płci
+  const pickByGender = (g) => {
+    const pool = CHARACTERS.filter(c => c.sex === g);
+    return pool.length ? pool[Math.floor(Math.random()*pool.length)] : null;
+  };
 
-    // 2) opcjonalny potwór (tylko jeśli włączono parametrem)
-    let pickedMonster = monster;
-    if (withMonsters) {
-      if (!pickedMonster) pickedMonster = randItem(MONSTERS);
-    } else {
-      pickedMonster = null;
-    }
+  let pickedHero = hero;
 
-    // 3) zresetuj dotychczasową zdolność (będzie przydzielona po narracji)
-    setAbility(null);
-
-    // 4) ustaw stan i przejdź do kroku „hero”
-    setHero(pickedHero);
-    setMonster(pickedMonster);
-    setStep('hero');
-    setFocus('left');
-    setAbilityOpen(false);
-
-    // 5) wyślij do panelu hosta
-    setTimeout(publish, 0);
+  // preset z QR tylko jeśli pasuje płcią do wyboru gracza
+  if (!pickedHero && presetHero && presetHero.sex === gender) {
+    pickedHero = presetHero;
   }
+
+  // jeśli nadal brak — losuj z tej samej płci; ostateczny fallback to jakikolwiek z sex ustawionym
+  if (!pickedHero) {
+    pickedHero = pickByGender(gender) || (CHARACTERS.find(c=>c.sex) || CHARACTERS[0]);
+  }
+
+  // potwór tylko gdy włączono parametrem (?m=1)
+  let pickedMonster = null;
+  if (withMonsters) {
+    pickedMonster = monster || MONSTERS[Math.floor(Math.random()*MONSTERS.length)];
+  }
+
+  setAbility(null);
+  setHero(pickedHero);
+  setMonster(pickedMonster);
+  setStep('hero');
+  setFocus('left');
+  setAbilityOpen(false);
+
+  setTimeout(publish, 0);
+}
+
 
   function onHeroClick(){
     if(step==='hero'){
