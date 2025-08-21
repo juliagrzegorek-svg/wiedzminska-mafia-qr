@@ -483,12 +483,13 @@ export default function App() {
     </form>
 
     {/* QR tylko dla gracza, nie dla hosta */}
-    {!hostMode && qrStart && (
-      <div className="start-qr">
-        <img src={qrStart} alt="QR do uruchomienia na telefonie" />
-        <span className="small">Zeskanuj, aby otworzyć na telefonie</span>
-      </div>
-    )}
+  {qrStart && (
+  <div className="start-qr">
+    <img src={qrStart} alt="QR do uruchomienia na telefonie" />
+    <span className="small">Zeskanuj, aby otworzyć na telefonie</span>
+  </div>
+)}
+
   </div>
 )}
 {/* STÓŁ */}
