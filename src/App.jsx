@@ -184,7 +184,14 @@ export default function App() {
   useEffect(() => { setZoom(null); }, [step]);
 
   // host realtime
-  useEffect(() => { if (!hostMode || !rtEnabled) return; const un = subscribePlayers(setPlayers); return () => un && un(); }, [hostMode]);
+ useEffect(() => {
+  if (!hostMode) return;              // host musi się narysować zawsze
+  if (!rtEnabled) { setPlayers([]); return; }  // bez RT pokaż pustą listę
+  const un = subscribePlayers(setPlayers);
+  return () => un && un();
+}, [hostMode]);
+
+
 
   // QR start
   useEffect(() => {
@@ -483,7 +490,7 @@ export default function App() {
     </form>
 
     {/* QR tylko dla gracza, nie dla hosta */}
-  {qrStart && (
+{qrStart && (
   <div className="start-qr">
     <img src={qrStart} alt="QR do uruchomienia na telefonie" />
     <span className="small">Zeskanuj, aby otworzyć na telefonie</span>
