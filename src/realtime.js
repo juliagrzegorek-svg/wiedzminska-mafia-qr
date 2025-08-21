@@ -1,82 +1,80 @@
-// src/realtime.js
+// === src/realtime.js ===
 import { createClient } from '@supabase/supabase-js';
 
-const URL = import.meta.env.VITE_SUPABASE_URL;
-const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// ENV z Netlify/Vite (masz je już ustawione)
+const URL  = import.meta.env.VITE_SUPABASE_URL;
+const KEY  = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// RT włączony tylko gdy mamy poprawne envy
 export const rtEnabled = !!(URL && KEY);
+export const supa = rtEnabled ? createClient(URL, KEY, {
+  auth: { persistSession: false }
+}) : null;
 
+// --- stały kod gry (wspólny dla hosta i graczy) ---
+const GC_KEY = 'game:code';
 export function getGameCode() {
-  const k = 'game:code';
-  let code = localStorage.getItem(k);
+  const url = new URL(location.href);
+  const fromUrl = url.searchParams.get('g');
+  if (fromUrl) {
+    // nadpisz lokalny i używaj kodu z linku/QR
+    localStorage.setItem(GC_KEY, fromUrl);
+    return fromUrl;
+  }
+  let code = localStorage.getItem(GC_KEY);
   if (!code) {
     code = Math.random().toString(36).slice(2, 7).toUpperCase();
-    localStorage.setItem(k, code);
+    localStorage.setItem(GC_KEY, code);
   }
   return code;
 }
 
-const supabase = rtEnabled ? createClient(URL, KEY) : null;
-
+// --- stałe ID urządzenia (żeby upsert działał poprawnie) ---
+const PID_KEY = 'player:id';
 function getPlayerId() {
-  const k = 'player:id';
-  let id = localStorage.getItem(k);
+  let id = localStorage.getItem(PID_KEY);
   if (!id) {
-    id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
-    localStorage.setItem(k, id);
+    id = (crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)) + '-' + Date.now();
+    localStorage.setItem(PID_KEY, id);
   }
   return id;
 }
 
+// --- zapis/aktualizacja gracza ---
 export async function upsertPlayer(row) {
   if (!rtEnabled) return;
   const payload = {
-    ...row,
     game_code: getGameCode(),
     player_id: getPlayerId(),
+    ...row,
   };
-
-  // upsert po (game_code, player_id)
-  const { error } = await supabase
+  // konflikt rozstrzygamy po (game_code, player_id)
+  await supa
     .from('players')
     .upsert(payload, { onConflict: 'game_code,player_id' });
-  if (error) {
-    // opcjonalnie: pokaż w konsoli jeśli np. zadziałał unikalny indeks na hero/ability
-    console.warn('upsertPlayer error:', error.message);
-  }
 }
 
+// --- subskrypcja listy graczy dla hosta ---
 export function subscribePlayers(set) {
   if (!rtEnabled) { set([]); return () => {}; }
 
-  const gc = getGameCode();
-  let disposed = false;
+  const code = getGameCode();
 
-  const refresh = async () => {
-    const { data, error } = await supabase
-      .from('players')
-      .select('*')
-      .eq('game_code', gc)
-      .order('updated_at', { ascending: false });
-    if (!disposed && !error && data) set(data);
-  };
+  // 1) wstępne pobranie
+  supa.from('players')
+    .select('*')
+    .eq('game_code', code)
+    .order('updated_at', { ascending: false })
+    .then(({ data }) => set(data || []));
 
-  // 1) pierwszy zrzut danych
-  refresh();
-
-  // 2) realtime (INSERT/UPDATE/DELETE dla tej gry)
-  const channel = supabase
-    .channel(`players-${gc}`)
+  // 2) realtime (insert/update/delete)
+  const ch = supa.channel('players-' + code)
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'players', filter: `game_code=eq.${gc}` },
-      () => refresh()
-    )
-    .subscribe();
-
-  return () => {
-    disposed = true;
-    supabase.removeChannel(channel);
-  };
-}
+      { event: '*', schema: 'public', table: 'players', filter: `game_code=eq.${code}` },
+      async () => {
+        const { data } = await supa
+          .from('players')
+          .select('*')
+          .eq('game_code', code)
+          .order('updated_at', { ascending: false });
+        set(data |
