@@ -1,11 +1,11 @@
 // src/realtime.js
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const URL = import.meta.env.VITE_SUPABASE_URL;
+const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Realtime włączony TYLKO jeśli są zmienne środowiskowe
-export const rtEnabled = !!(SUPABASE_URL && SUPABASE_ANON);
+// RT włączony tylko gdy mamy poprawne envy
+export const rtEnabled = !!(URL && KEY);
 
 export function getGameCode() {
   const k = 'game:code';
@@ -17,87 +17,66 @@ export function getGameCode() {
   return code;
 }
 
-// Stałe ID urządzenia gracza – do upsertu
-const PID_KEY = 'player:id';
+const supabase = rtEnabled ? createClient(URL, KEY) : null;
+
 function getPlayerId() {
-  let pid = localStorage.getItem(PID_KEY);
-  if (!pid) {
-    pid = 'plr_' + Math.random().toString(36).slice(2, 10);
-    localStorage.setItem(PID_KEY, pid);
+  const k = 'player:id';
+  let id = localStorage.getItem(k);
+  if (!id) {
+    id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
+    localStorage.setItem(k, id);
   }
-  return pid;
+  return id;
 }
 
-const supabase = rtEnabled ? createClient(SUPABASE_URL, SUPABASE_ANON) : null;
-
-// Zapis/aktualizacja stanu gracza
 export async function upsertPlayer(row) {
   if (!rtEnabled) return;
   const payload = {
-    player_id: getPlayerId(),
-    game_code: getGameCode(),
     ...row,
-    updated_at: new Date().toISOString(),
+    game_code: getGameCode(),
+    player_id: getPlayerId(),
   };
+
+  // upsert po (game_code, player_id)
   const { error } = await supabase
     .from('players')
-    .upsert(payload, { onConflict: 'player_id' }); // update po player_id
-  if (error) console.warn('upsertPlayer error', error);
+    .upsert(payload, { onConflict: 'game_code,player_id' });
+  if (error) {
+    // opcjonalnie: pokaż w konsoli jeśli np. zadziałał unikalny indeks na hero/ability
+    console.warn('upsertPlayer error:', error.message);
+  }
 }
 
-// Subskrypcja listy graczy dla danego kodu gry (host panel)
 export function subscribePlayers(set) {
   if (!rtEnabled) { set([]); return () => {}; }
 
-  const code = getGameCode();
+  const gc = getGameCode();
+  let disposed = false;
 
-  // initial load
-  const load = async () => {
+  const refresh = async () => {
     const { data, error } = await supabase
       .from('players')
       .select('*')
-      .eq('game_code', code)
+      .eq('game_code', gc)
       .order('updated_at', { ascending: false });
-    if (error) { console.warn('load players error', error); return; }
-    set(data || []);
+    if (!disposed && !error && data) set(data);
   };
-  load();
 
-  // realtime
+  // 1) pierwszy zrzut danych
+  refresh();
+
+  // 2) realtime (INSERT/UPDATE/DELETE dla tej gry)
   const channel = supabase
-    .channel('players-channel-' + code)
+    .channel(`players-${gc}`)
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'players', filter: `game_code=eq.${code}` },
-      () => load()
+      { event: '*', schema: 'public', table: 'players', filter: `game_code=eq.${gc}` },
+      () => refresh()
     )
     .subscribe();
 
-  return () => { supabase.removeChannel(channel); };
-}
-
-// Zwraca zbiory zajętych ID w obrębie bieżącego game_code
-export async function getUsed(code = getGameCode()) {
-  if (!rtEnabled) {
-    return { heroes: new Set(), monsters: new Set(), abilities: new Set() };
-  }
-  const { data, error } = await supabase
-    .from('players')
-    .select('hero_id, monster_id, ability_id')
-    .eq('game_code', code);
-
-  if (error) {
-    console.warn('getUsed error', error);
-    return { heroes: new Set(), monsters: new Set(), abilities: new Set() };
-  }
-
-  const heroes = new Set();
-  const monsters = new Set();
-  const abilities = new Set();
-  for (const r of data || []) {
-    if (r.hero_id) heroes.add(r.hero_id);
-    if (r.monster_id) monsters.add(r.monster_id);
-    if (r.ability_id) abilities.add(r.ability_id);
-  }
-  return { heroes, monsters, abilities };
+  return () => {
+    disposed = true;
+    supabase.removeChannel(channel);
+  };
 }
