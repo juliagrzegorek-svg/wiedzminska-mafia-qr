@@ -77,4 +77,10 @@ export function subscribePlayers(set) {
           .select('*')
           .eq('game_code', code)
           .order('updated_at', { ascending: false });
-        set(data |
+        set(data || []);
+      }
+    )
+    .subscribe();
+
+  return () => { supa.removeChannel(ch); };
+}
