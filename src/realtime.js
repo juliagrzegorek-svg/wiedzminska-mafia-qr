@@ -1,86 +1,84 @@
 // === src/realtime.js ===
 import { createClient } from '@supabase/supabase-js';
 
-// ENV z Netlify/Vite (masz je już ustawione)
-const URL  = import.meta.env.VITE_SUPABASE_URL;
-const KEY  = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// ENV z Netlify (lub .env lokalnie)
+const URL = import.meta.env.VITE_SUPABASE_URL;
+const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const rtEnabled = !!(URL && KEY);
-export const supa = rtEnabled ? createClient(URL, KEY, {
-  auth: { persistSession: false }
-}) : null;
+// Realtime włączone tylko, jeżeli oba ENV istnieją
+export const rtEnabled = Boolean(URL && KEY);
 
-// --- stały kod gry (wspólny dla hosta i graczy) ---
-const GC_KEY = 'game:code';
+// Stały kod gry (5 znaków), wspólny dla wszystkich w tej sesji
 export function getGameCode() {
-  const url = new URL(location.href);
-  const fromUrl = url.searchParams.get('g');
-  if (fromUrl) {
-    // nadpisz lokalny i używaj kodu z linku/QR
-    localStorage.setItem(GC_KEY, fromUrl);
-    return fromUrl;
-  }
-  let code = localStorage.getItem(GC_KEY);
+  let code = localStorage.getItem('game:code');
   if (!code) {
-    code = Math.random().toString(36).slice(2, 7).toUpperCase();
-    localStorage.setItem(GC_KEY, code);
+    const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    code = Array.from({ length: 5 }, () => ABC[Math.floor(Math.random() * ABC.length)]).join('');
+    localStorage.setItem('game:code', code);
   }
   return code;
 }
 
-// --- stałe ID urządzenia (żeby upsert działał poprawnie) ---
-const PID_KEY = 'player:id';
+// Stałe ID urządzenia (jeden gracz = jedno urządzenie)
 function getPlayerId() {
-  let id = localStorage.getItem(PID_KEY);
+  let id = localStorage.getItem('player:id');
   if (!id) {
-    id = (crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)) + '-' + Date.now();
-    localStorage.setItem(PID_KEY, id);
+    id = (crypto?.randomUUID?.() || Math.random().toString(36).slice(2)) + Date.now().toString(36);
+    localStorage.setItem('player:id', id);
   }
   return id;
 }
 
-// --- zapis/aktualizacja gracza ---
-export async function upsertPlayer(row) {
-  if (!rtEnabled) return;
-  const payload = {
-    game_code: getGameCode(),
-    player_id: getPlayerId(),
-    ...row,
-  };
-  // konflikt rozstrzygamy po (game_code, player_id)
-  await supa
-    .from('players')
-    .upsert(payload, { onConflict: 'game_code,player_id' });
+// Klient Supabase tylko, jeżeli mamy ENV
+let supa = null;
+if (rtEnabled) {
+  supa = createClient(URL, KEY, {
+    realtime: { params: { eventsPerSecond: 2 } },
+  });
 }
 
-// --- subskrypcja listy graczy dla hosta ---
-export function subscribePlayers(set) {
-  if (!rtEnabled) { set([]); return () => {}; }
+// ——— API używane w App.jsx ———
 
-  const code = getGameCode();
+// upsert w tabeli players (albo no-op gdy rt wyłączony)
+export async function upsertPlayer(row) {
+  const payload = {
+    ...row,
+    game_code: getGameCode(),
+    player_id: getPlayerId(),
+  };
+  if (!rtEnabled) return payload;
+  await supa.from('players').upsert(payload, { onConflict: 'game_code,player_id' });
+  return payload;
+}
 
-  // 1) wstępne pobranie
-  supa.from('players')
-    .select('*')
-    .eq('game_code', code)
-    .order('updated_at', { ascending: false })
-    .then(({ data }) => set(data || []));
+// subskrypcja listy graczy (albo pusta, gdy rt wyłączony)
+export function subscribePlayers(setter) {
+  if (!rtEnabled) {
+    setter([]);           // pokaż pustą tabelę, ale panel hosta działa
+    return () => {};
+  }
 
-  // 2) realtime (insert/update/delete)
-  const ch = supa.channel('players-' + code)
+  const load = async () => {
+    const { data } = await supa
+      .from('players')
+      .select('*')
+      .eq('game_code', getGameCode())
+      .order('updated_at', { ascending: false });
+    setter(data || []);
+  };
+
+  // pierwsze pobranie
+  load();
+
+  // realtime
+  const channel = supa
+    .channel('players-live')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'players', filter: `game_code=eq.${code}` },
-      async () => {
-        const { data } = await supa
-          .from('players')
-          .select('*')
-          .eq('game_code', code)
-          .order('updated_at', { ascending: false });
-        set(data || []);
-      }
+      { event: '*', schema: 'public', table: 'players', filter: `game_code=eq.${getGameCode()}` },
+      () => load()
     )
     .subscribe();
 
-  return () => { supa.removeChannel(ch); };
+  return () => supa.removeChannel(channel);
 }
