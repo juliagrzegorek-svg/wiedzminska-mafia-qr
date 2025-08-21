@@ -491,6 +491,10 @@ export default function App() {
     )}
   </div>
 )}
+{/* STÓŁ */}
+{step !== 'start' && (
+  <div className="table">
+    {!hostMode && <div className="table-surface" />}
 
           {/* BOHATER */}
           {hero && (
