@@ -390,6 +390,14 @@ export default function App() {
 
   return (
     <div className={`app ${hostMode ? 'is-host' : ''}`}>
+{hostMode && (
+  <div style={{
+    position:'fixed', top:8, left:8, zIndex: 999999,
+    color:'#fff', fontWeight:700, pointerEvents:'none'
+  }}>
+    HOST: {getGameCode()} {rtEnabled ? '' : '(RT off)'}
+  </div>
+)}
 
       {/* HOST */}
       {hostMode && (
