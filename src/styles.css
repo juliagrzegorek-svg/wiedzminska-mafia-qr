@@ -302,3 +302,6 @@ input[type="text"]{
   .card.ability .media{ flex: 0 0 46%; }
   .card.ability .body{ max-height: 52vh; }
 }
+.host { color: #e8e8e8; }
+.host .host-header { font-weight: 700; margin-bottom: 10px; }
+}
