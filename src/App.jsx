@@ -514,6 +514,15 @@ useEffect(() => {
 {step !== 'start' && (
   <div className="table">
     {!hostMode && <div className="table-surface" />}
+{!hostMode && (step === 'ability' || step === 'done') && (
+  <button
+    className="hamburger"
+    aria-label="Menu"
+    onClick={() => setMenuOpen(true)}
+  >
+    <span></span><span></span><span></span>
+  </button>
+)}
 
           {/* BOHATER */}
           {hero && (
