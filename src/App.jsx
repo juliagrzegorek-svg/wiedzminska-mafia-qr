@@ -184,23 +184,25 @@ export default function App() {
   useEffect(() => { setZoom(null); }, [step]);
 
   // host realtime
- useEffect(() => {
-  if (!hostMode) return;              // host musi się narysować zawsze
-  if (!rtEnabled) { setPlayers([]); return; }  // bez RT pokaż pustą listę
-  const un = subscribePlayers(setPlayers);
+useEffect(() => {
+  if (!hostMode) return;
+  const un = subscribePlayers(setPlayers); // w trybie bez RT zwróci pustą listę i no-opa
   return () => un && un();
 }, [hostMode]);
 
 
 
   // QR start
-  useEffect(() => {
-    (async () => {
-      const link = `${qrBaseUrl}${location.pathname}?g=${getGameCode()}`;
+ useEffect(() => {
+  (async () => {
+    const link = `${qrBaseUrl}${location.pathname}?g=${getGameCode()}`;
+    try {
       setQrStart(await makeQR(link));
-    })().catch(() => {});
-  }, [qrBaseUrl]);
-
+    } catch (e) {
+      setQrStart(null);
+    }
+  })();
+}, [qrBaseUrl]);
   function buildLinkFor(c) {
     return `${qrBaseUrl}${location.pathname}?g=${getGameCode()}&pre=${c.id}`;
   }
