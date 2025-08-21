@@ -20,7 +20,7 @@ async function makeQR(url) {
     errorCorrectionLevel: 'M',
     color: { dark: '#000000', light: '#FFFFFF' },
   });
-} // ✔️ tu kończy się funkcja; bez dodatkowego `});`
+}
 
 /* ---------- obrazki z fallbackami ---------- */
 function ImgSeq({ candidates, alt, style }) {
@@ -41,13 +41,7 @@ function imageCandidates(item) {
   if (!item) return [];
   const id = (item.id || '').toLowerCase();
   const hasExt = (p) => /\.(png|jpe?g|webp)$/i.test(p);
-  const bases = [
-    item.img,
-    `/assets/${id}`,
-    `/assets/heroes/${id}`,
-    `/assets/monsters/${id}`,
-    `/assets/characters/${id}`,
-  ].filter(Boolean);
+  const bases = [item.img, `/assets/${id}`, `/assets/heroes/${id}`, `/assets/monsters/${id}`, `/assets/characters/${id}`].filter(Boolean);
   const out = [];
   for (const b of bases) {
     if (hasExt(b)) out.push(b);
@@ -57,14 +51,7 @@ function imageCandidates(item) {
 }
 
 /* ---------- localStorage ---------- */
-const LS = {
-  name: 'player:name',
-  gender: 'player:gender',
-  hero: 'player:hero',
-  monster: 'player:monster',
-  ability: 'player:ability',
-  step: 'player:step',
-};
+const LS = { name: 'player:name', gender: 'player:gender', hero: 'player:hero', monster: 'player:monster', ability: 'player:ability', step: 'player:step' };
 const isHost = () => {
   const u = new URL(location.href);
   return u.searchParams.get('host') === '1' || u.hash.includes('host');
@@ -101,25 +88,23 @@ function resolveOwnerOfAbility(abilityId) {
 }
 
 /* ---------- losowanie zdolności ---------- */
-// Zastąp swoją funkcję pickAbility tą wersją
 function pickAbility({ hero, monster }) {
   if (monster) {
     const base = getDefaultAbilityForMonster(monster);
     return base ? { ...base, ownerType: 'monster', ownerName: monster.name } : null;
   }
   if (hero) {
-    // 1) zacznij od puli dozwolonej dla bohatera (onlyFor itp.)
-    const basePool = GOOD_ABILITIES.filter(a =>
-      !a.onlyFor || (Array.isArray(a.onlyFor) && a.onlyFor.includes(hero.id))
+    // 1) pula zgodna z onlyFor/itp.
+    const basePool = GOOD_ABILITIES.filter(
+      (a) => !a.onlyFor || (Array.isArray(a.onlyFor) && a.onlyFor.includes(hero.id))
     );
-    // 2) odfiltruj do tej samej płci co bohater
-    const sameGenderPool = basePool.filter(a => {
-      const owner = resolveOwnerOfAbility(a.id);      // { type:'hero', obj:{ gender:'f'|'m', ... } }
+    // 2) zdolności tej samej płci (jeśli właściciel zdolności to bohater/bohaterka)
+    const sameGenderPool = basePool.filter((a) => {
+      const owner = resolveOwnerOfAbility(a.id); // {obj:{gender:'f'|'m'}}
       const ownerGender = owner?.obj?.gender;
       return !ownerGender || ownerGender === hero.gender;
     });
-
-    const list = sameGenderPool.length ? sameGenderPool : basePool; // fallback gdyby zabrakło
+    const list = sameGenderPool.length ? sameGenderPool : basePool;
     const ability = list[Math.floor(Math.random() * list.length)];
     const owner = resolveOwnerOfAbility(ability.id);
     const ownerName = owner?.obj?.name || hero.name;
@@ -127,7 +112,6 @@ function pickAbility({ hero, monster }) {
   }
   return null;
 }
-
 
 export default function App() {
   const [hostMode, setHostMode] = useState(isHost());
@@ -164,19 +148,6 @@ export default function App() {
     const cleaned = next.trim().replace(/\/+$/, '');
     localStorage.setItem(PUBLIC_URL_KEY, cleaned);
     setQrBaseUrl(cleaned);
-    // QR BASE – musi być wewnątrz komponentu
-const [qrBaseUrl, setQrBaseUrl] = useState(getQrBase());
-function setPublicQrUrl(){
-  const next = prompt(
-    'Publiczny URL dla QR (np. https://twoja-nazwa.netlify.app albo http://192.168.0.12:5173):',
-    qrBaseUrl
-  );
-  if(!next) return;
-  const cleaned = next.trim().replace(/\/+$/,'');
-  localStorage.setItem('game:public-url', cleaned);
-  setQrBaseUrl(cleaned);
-}
-
   }
 
   // narracja
@@ -188,17 +159,15 @@ function setPublicQrUrl(){
   const fullText =
     'Mroczny Krąg od jakiegoś czasu sabotuje naszym życiem. Zażyliście ich eliksirów, przez co zdolności Waszych postaci wymieszały się. ' +
     'Czy Yen jest dalej lekarką a Emhyr jako sędzia nadal uniewinni przed śmiercią? ' +
-    'Strzeżcie się Mrocznego Kręgu, — szepczą i tną nici zaufania. ' +
+    'Strzeżcie się Mrocznego Kręgu — szepczą i tną nici zaufania. ' +
     'Nie wierzcie nikomu. Nawet sobie.';
 
   const presetHero = useMemo(() => CHARACTERS.find((c) => c.id === presetHeroId) || null, []);
 
-  // —— SAMOLECZENIE STANU NA STARCIe (koniec z „czarną stroną”) ——
+  // „samoleczenie” stanu po wejściu na czarnej stronie
   useEffect(() => {
     if (step !== 'start' && (!hero || !name.trim())) {
-      setStep('start');
-      setFocus(null);
-      setZoom(null);
+      setStep('start'); setFocus(null); setZoom(null);
     }
     if (step === 'monster' && !monster) setStep('hero-placed');
     if (step === 'ability' && !ability) setStep('hero-placed');
@@ -251,42 +220,38 @@ function setPublicQrUrl(){
     });
   }
 
-  const randItem = (a) => a[Math.floor(Math.random() * a.length)];
-
   /* ---------- START GAME ---------- */
- function startGame(e){
-  e.preventDefault();
-  if (!name.trim()) return;
+  function startGame(e) {
+    e.preventDefault();
+    if (!name.trim()) return;
 
-  // Mapowanie płci z formularza (K/M) -> na dane ('f'/'m')
-  const g = (gender === 'K') ? 'f' : 'm';
+    // mapowanie płci z formularza (K/M) -> 'f'/'m'
+    const g = (gender === 'K') ? 'f' : 'm';
 
-  // 1) preset z QR tylko jeśli pasuje płcią
-  let pickedHero = (presetHero && presetHero.gender === g) ? presetHero : null;
+    // preset z QR tylko jeśli pasuje płcią
+    let pickedHero = (presetHero && presetHero.gender === g) ? presetHero : null;
 
-  // 2) albo los z puli tej samej płci
-  if (!pickedHero) {
-    const pool = CHARACTERS.filter(c => c.gender === g);
-    pickedHero = pool[Math.floor(Math.random() * pool.length)];
+    // albo los z puli tej samej płci
+    if (!pickedHero) {
+      const pool = CHARACTERS.filter(c => c.gender === g);
+      pickedHero = pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    // opcjonalny potwór (?m=1)
+    let pickedMonster = null;
+    if (withMonsters) {
+      pickedMonster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+    }
+
+    setAbility(null);
+    setHero(pickedHero);
+    setMonster(pickedMonster);
+    setStep('hero');
+    setFocus('left');
+    setAbilityOpen(false);
+
+    setTimeout(publish, 0);
   }
-
-  // 3) opcjonalny potwór (?m=1)
-  let pickedMonster = null;
-  if (withMonsters) {
-    pickedMonster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
-  }
-
-  // 4) stan
-  setAbility(null);
-  setHero(pickedHero);
-  setMonster(pickedMonster);
-  setStep('hero');
-  setFocus('left');
-  setAbilityOpen(false);
-
-  setTimeout(publish, 0);
-}
-
 
   function onHeroClick() {
     if (step === 'hero') {
@@ -356,55 +321,47 @@ function setPublicQrUrl(){
     setTimeout(publish, 0);
   }
 
-// wyliczenia do widoku
-const abilityOwnerForPortrait = useMemo(() => {
-  if (!ability) return null;
-  // spróbuj znaleźć „właściciela” po domyślnej zdolności
-  const owner = resolveOwnerOfAbility(ability.id);
-  if (owner?.obj) return owner.obj;
-  // fallback: jeśli potwór – pokaż potwora, inaczej bohatera
-  return ability.ownerType === 'monster' ? monster : hero;
-}, [ability, hero, monster]);
+  // wyliczenia do widoku
+  const abilityOwnerForPortrait = useMemo(() => {
+    if (!ability) return null;
+    const owner = resolveOwnerOfAbility(ability.id);
+    if (owner?.obj) return owner.obj;
+    return ability.ownerType === 'monster' ? monster : hero;
+  }, [ability, hero, monster]);
 
-const abilityPortraitCandidates = useMemo(() => {
-  return imageCandidates(abilityOwnerForPortrait);
-}, [abilityOwnerForPortrait]);
+  const abilityPortraitCandidates = useMemo(() => imageCandidates(abilityOwnerForPortrait), [abilityOwnerForPortrait]);
+  const abilityClass = ability?.ownerType === 'monster' ? 'monster' : 'good';
 
-const abilityClass = ability?.ownerType === 'monster' ? 'monster' : 'good';
+  const abilityNameOnly = (() => {
+    if (!ability?.title) return '';
+    const parts = ability.title.split('—');
+    return (parts[1] || parts[0] || '').trim();
+  })();
 
-const abilityNameOnly = (() => {
-  if (!ability?.title) return '';
-  const parts = ability.title.split('—');
-  return (parts[1] || parts[0] || '').trim();
-})();
+  const heroDefaultAbility = getDefaultAbilityForHero(hero);
+  const heroDefaultNameOnly = (() => {
+    if (!heroDefaultAbility?.title) return '';
+    const parts = heroDefaultAbility.title.split('—');
+    return (parts[1] || parts[0] || '').trim();
+  })();
 
-const heroDefaultAbility = getDefaultAbilityForHero(hero);
-const heroDefaultNameOnly = (() => {
-  if (!heroDefaultAbility?.title) return '';
-  const parts = heroDefaultAbility.title.split('—');
-  return (parts[1] || parts[0] || '').trim();
-})();
-
-const monsterDefaultAbility = getDefaultAbilityForMonster(monster);
-const monsterDefaultNameOnly = (() => {
-  if (!monsterDefaultAbility?.title) return '';
-  const parts = monsterDefaultAbility.title.split('—');
-  return (parts[1] || parts[0] || '').trim();
-})();
+  const monsterDefaultAbility = getDefaultAbilityForMonster(monster);
+  const monsterDefaultNameOnly = (() => {
+    if (!monsterDefaultAbility?.title) return '';
+    const parts = monsterDefaultAbility.title.split('—');
+    return (parts[1] || parts[0] || '').trim();
+  })();
 
   // ——— Bezpieczne tytuł/opis dla karty zdolności ———
-const abilityTitleSafe = useMemo(() => {
-  if (!ability) return '';
-  // Jeśli mamy gotowy tytuł w danych — użyj go
-  if (ability.title && ability.title.trim()) return ability.title;
-  // W innym wypadku zbuduj „Zdolność: <właściciel> — <nazwa>”
-  const namePart = abilityNameOnly || '';
-  const ownerPart = ability.ownerName || '';
-  return `Zdolność: ${ownerPart}${namePart ? ` — ${namePart}` : ''}`;
-}, [ability, abilityNameOnly]);
+  const abilityTitleSafe = useMemo(() => {
+    if (!ability) return '';
+    if (ability.title && ability.title.trim()) return ability.title;
+    const namePart = abilityNameOnly || '';
+    const ownerPart = ability.ownerName || '';
+    return `Zdolność: ${ownerPart}${namePart ? ` — ${namePart}` : ''}`;
+  }, [ability, abilityNameOnly]);
 
-const abilityDescSafe = ability?.description || '';
-
+  const abilityDescSafe = ability?.description || '';
 
   function newCode() { localStorage.removeItem('game:code'); location.reload(); }
   async function copy(t) { try { await navigator.clipboard.writeText(t); } catch {} }
@@ -425,8 +382,7 @@ const abilityDescSafe = ability?.description || '';
         : (step === 'done' ? 'laid-right' : 'at-right'));
 
   return (
-   <div className={`app ${hostMode ? 'is-host' : ''}`}>
-
+    <div className={`app ${hostMode ? 'is-host' : ''}`}>
 
       {/* HOST */}
       {hostMode && (
@@ -436,13 +392,10 @@ const abilityDescSafe = ability?.description || '';
           </div>
 
           <div className="host-actions">
-  <button className="btn" onClick={()=>copy(`${qrBaseUrl}${location.pathname}?g=${getGameCode()}`)}>
-    Kopiuj link do gry
-  </button>
-  <button className="btn" onClick={newCode}>Nowy kod gry</button>
-  <button className="btn" onClick={setPublicQrUrl}>Ustaw URL do QR</button>
-</div>
-
+            <button className="btn" onClick={() => copy(`${qrBaseUrl}${location.pathname}?g=${getGameCode()}`)}>Kopiuj link do gry</button>
+            <button className="btn" onClick={newCode}>Nowy kod gry</button>
+            <button className="btn" onClick={setPublicQrUrl}>Ustaw URL do QR</button>
+          </div>
 
           {(location.hostname === 'localhost' || location.hostname === '127.0.0.1') && (
             <div className="small" style={{ marginTop: 6, opacity: .85 }}>
@@ -491,9 +444,8 @@ const abilityDescSafe = ability?.description || '';
       )}
 
       {/* START */}
-     {step==='start' && (
-  <div className={`start ${hostMode ? 'no-bg' : ''}`}>
-
+      {step === 'start' && (
+        <div className={`start ${hostMode ? 'no-bg' : ''}`}>
           <form className="form" onSubmit={startGame}>
             <div style={{ fontWeight: 700, marginRight: 8 }}>Wpisz imię i nazwisko gracza oraz płeć:</div>
             <input type="text" placeholder="Imię i nazwisko" value={name} onChange={e => setName(e.target.value)} />
@@ -516,9 +468,7 @@ const abilityDescSafe = ability?.description || '';
       {/* STÓŁ */}
       {step !== 'start' && (
         <div className="table">
-         {!hostMode && <div className="table-surface" />}
-
-
+          {!hostMode && <div className="table-surface" />}
 
           {(step === 'ability' || step === 'done') && (
             <button className="hamburger" aria-label="Menu" onClick={() => setMenuOpen(true)}>
@@ -538,15 +488,14 @@ const abilityDescSafe = ability?.description || '';
               onClick={onHeroClick}
               style={{ zIndex: (step === 'hero' || zoom === 'left') ? 9800 : (focus === 'left' ? 1100 : 800) }}
             >
-             <div className="media">
-  <ImgSeq candidates={imageCandidates(hero)} alt={hero?.name} />
-</div>
+              <div className="media">
+                <ImgSeq candidates={imageCandidates(hero)} alt={hero?.name} />
+              </div>
 
               <div className="body ornament">
                 <div className="pretitle">Twoja postać to:</div>
                 <h3>{hero.name}</h3>
                 <div className="role">{hero.gender === 'f' ? 'Bohaterka' : 'Bohater'}</div>
-
                 <div className="meta">
                   <div><b>Co robi?</b> {hero.what}</div>
                   <div><b>Zdolność:</b> {heroDefaultNameOnly || '—'}</div>
@@ -601,19 +550,19 @@ const abilityDescSafe = ability?.description || '';
               onClick={onAbilityClick}
               style={{ zIndex: (step === 'ability' || abilityOpen) ? 9800 : 1300 }}
             >
-            <div className="media">
-  <ImgSeq
-    candidates={abilityPortraitCandidates}
-    alt={abilityOwnerForPortrait?.name || ability?.ownerName}
-  />
-</div>
+              <div className="media">
+                <ImgSeq
+                  candidates={abilityPortraitCandidates}
+                  alt={abilityOwnerForPortrait?.name || ability?.ownerName}
+                />
+              </div>
 
               <div className="body ornament">
-              <h3>{abilityTitleSafe}</h3>
+                <h3>{abilityTitleSafe}</h3>
                 <div className="role">Karta zdolności</div>
                 <div className="meta">
-                 <p><b>Twoja aktualna zdolność:</b> {abilityTitleSafe}</p>
-<p style={{ whiteSpace: 'pre-wrap' }}>{abilityDescSafe}</p>
+                  <p><b>Twoja aktualna zdolność:</b> {abilityTitleSafe}</p>
+                  <p style={{ whiteSpace: 'pre-wrap' }}>{abilityDescSafe}</p>
                 </div>
                 <div className="action">
                   <button type="button">
@@ -660,8 +609,7 @@ const abilityDescSafe = ability?.description || '';
                       <div className="mini-name">{h.name}</div>
                       <div className="mini-line"><b>Co robi?</b> {h.what || '—'}</div>
                       <div className="mini-line"><b>Zdolność:</b> {nameOnly || '—'}</div>
-                      <div className="mini-desc">{a?.description || '—'}</div>
-
+                      <div className="mini-desc" style={{ whiteSpace: 'pre-wrap' }}>{a?.description || '—'}</div>
                     </div>
                   </div>
                 );
