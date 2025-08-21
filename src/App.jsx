@@ -101,14 +101,25 @@ function resolveOwnerOfAbility(abilityId) {
 }
 
 /* ---------- losowanie zdolności ---------- */
+// Zastąp swoją funkcję pickAbility tą wersją
 function pickAbility({ hero, monster }) {
   if (monster) {
     const base = getDefaultAbilityForMonster(monster);
     return base ? { ...base, ownerType: 'monster', ownerName: monster.name } : null;
   }
   if (hero) {
-    const pool = GOOD_ABILITIES.filter((a) => !a.onlyFor || (Array.isArray(a.onlyFor) && a.onlyFor.includes(hero.id)));
-    const list = pool.length ? pool : GOOD_ABILITIES;
+    // 1) zacznij od puli dozwolonej dla bohatera (onlyFor itp.)
+    const basePool = GOOD_ABILITIES.filter(a =>
+      !a.onlyFor || (Array.isArray(a.onlyFor) && a.onlyFor.includes(hero.id))
+    );
+    // 2) odfiltruj do tej samej płci co bohater
+    const sameGenderPool = basePool.filter(a => {
+      const owner = resolveOwnerOfAbility(a.id);      // { type:'hero', obj:{ gender:'f'|'m', ... } }
+      const ownerGender = owner?.obj?.gender;
+      return !ownerGender || ownerGender === hero.gender;
+    });
+
+    const list = sameGenderPool.length ? sameGenderPool : basePool; // fallback gdyby zabrakło
     const ability = list[Math.floor(Math.random() * list.length)];
     const owner = resolveOwnerOfAbility(ability.id);
     const ownerName = owner?.obj?.name || hero.name;
@@ -116,6 +127,7 @@ function pickAbility({ hero, monster }) {
   }
   return null;
 }
+
 
 export default function App() {
   const [hostMode, setHostMode] = useState(isHost());
