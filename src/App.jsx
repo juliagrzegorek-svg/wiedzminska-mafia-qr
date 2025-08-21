@@ -443,38 +443,54 @@ export default function App() {
         </div>
       )}
 
-      {/* START */}
-      {step === 'start' && (
-        <div className={`start ${hostMode ? 'no-bg' : ''}`}>
-          <form className="form" onSubmit={startGame}>
-            <div style={{ fontWeight: 700, marginRight: 8 }}>Wpisz imię i nazwisko gracza oraz płeć:</div>
-            <input type="text" placeholder="Imię i nazwisko" value={name} onChange={e => setName(e.target.value)} />
-            <div className="gender">
-              <label><input type="radio" name="gender" value="K" checked={gender === 'K'} onChange={e => setGender(e.target.value)} /> Kobieta</label>
-              <label><input type="radio" name="gender" value="M" checked={gender === 'M'} onChange={e => setGender(e.target.value)} style={{ marginLeft: 10 }} /> Mężczyzna</label>
-            </div>
-            <button className="btn" disabled={!name.trim()} type="submit">Losuj kartę</button>
-          </form>
+ {step === 'start' && (
+  <div className={`start ${hostMode ? 'no-bg' : ''}`}>
+    <form className="form" onSubmit={startGame}>
+      <div style={{ fontWeight: 700, marginRight: 8 }}>
+        Wpisz imię i nazwisko gracza oraz płeć:
+      </div>
+      <input
+        type="text"
+        placeholder="Imię i nazwisko"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <div className="gender">
+        <label>
+          <input
+            type="radio"
+            name="gender"
+            value="K"
+            checked={gender === 'K'}
+            onChange={(e) => setGender(e.target.value)}
+          />
+          Kobieta
+        </label>
+        <label style={{ marginLeft: 10 }}>
+          <input
+            type="radio"
+            name="gender"
+            value="M"
+            checked={gender === 'M'}
+            onChange={(e) => setGender(e.target.value)}
+          />
+          Mężczyzna
+        </label>
+      </div>
+      <button className="btn" disabled={!name.trim()} type="submit">
+        Losuj kartę
+      </button>
+    </form>
 
-          {qrStart && (
-            <div className="start-qr">
-              <img src={qrStart} alt="QR do uruchomienia na telefonie" />
-              <span className="small">Zeskanuj, aby otworzyć na telefonie</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* STÓŁ */}
-      {step !== 'start' && (
-        <div className="table">
-          {!hostMode && <div className="table-surface" />}
-
-          {(step === 'ability' || step === 'done') && (
-            <button className="hamburger" aria-label="Menu" onClick={() => setMenuOpen(true)}>
-              <span></span><span></span><span></span>
-            </button>
-          )}
+    {/* QR tylko dla gracza, nie dla hosta */}
+    {!hostMode && qrStart && (
+      <div className="start-qr">
+        <img src={qrStart} alt="QR do uruchomienia na telefonie" />
+        <span className="small">Zeskanuj, aby otworzyć na telefonie</span>
+      </div>
+    )}
+  </div>
+)}
 
           {/* BOHATER */}
           {hero && (
